@@ -1,0 +1,23 @@
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "new",
+  "rsc": true,
+  "icon": "lucide",
+  "tailwind": {
+    "config": {
+      "applyBase": true,
+      "applyComponents": true,
+      "applyUtilities": true,
+      "fontFamily": {
+        "sans": ["var(--font-geist-sans)", "sans-serif"],
+        "mono": ["var(--font-geist-mono)", "monospace"]
+      }
+    },
+    "css": "app/globals.css"
+  },
+  "aliases": {
+    "components": "@/components",
+    "utils": "@/lib/utils",
+    "ui": "@/components/ui"
+  }
+}
