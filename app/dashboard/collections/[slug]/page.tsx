@@ -5,17 +5,18 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
-import { fetchCategory, type Category, type StoredFile } from '@/lib/api'
+import { useEffect, useRef, useState, type ChangeEvent } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import {
+  fetchCategory, uploadFile, deleteCategory, canManageContent,
+  type Category, type StoredFile,
+} from '@/lib/api'
+import { useAuth } from '@/components/auth-provider'
 import { FileCard } from '@/components/file-card'
-import { CategoryTree } from '@/components/category-tree'
-import { ArrowLeft, FolderOpen, FileText } from 'lucide-react'
+import { ArrowLeft, FolderOpen, Upload, Trash2 } from 'lucide-react'
 import Link from 'next/link'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-
-const COLLECTION_CONTENT_TYPE_ID = 7 // Category ContentType
+import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,6 +26,48 @@ export default function CollectionPage() {
   const [category, setCategory] = useState<Category & { files: StoredFile[] } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const router = useRouter()
+  const { user } = useAuth()
+  const canManage = canManageContent(user)
+
+  const handleUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const picked = e.target.files?.[0]
+    e.target.value = '' // allow re-selecting the same file
+    if (!picked || !category || busy) return
+    setBusy(true)
+    setActionError(null)
+    try {
+      const uploaded = await uploadFile({ file: picked, category: category.slug })
+      setCategory((prev) =>
+        prev ? { ...prev, files: [uploaded, ...(prev.files || [])] } : prev)
+    } catch (err) {
+      setActionError((err as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!category || busy) return
+    const fileCount = category.files?.length ?? 0
+    const childCount = category.children?.length ?? 0
+    const extras = fileCount || childCount
+      ? ` This also removes ${fileCount} asset(s) and ${childCount} subcollection(s).`
+      : ''
+    if (!window.confirm(`Delete "${category.title}"?${extras}`)) return
+    setBusy(true)
+    setActionError(null)
+    try {
+      await deleteCategory(category.slug)
+      router.push('/dashboard/collections')
+    } catch (err) {
+      setActionError((err as Error).message)
+      setBusy(false)
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -90,12 +133,47 @@ export default function CollectionPage() {
       </Link>
 
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold">{category.title}</h1>
-        {category.description && (
-          <p className="text-muted-foreground mt-1">{category.description}</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">{category.title}</h1>
+          {category.description && (
+            <p className="text-muted-foreground mt-1">{category.description}</p>
+          )}
+        </div>
+        {canManage && (
+          <div className="flex items-center gap-2 shrink-0">
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              onChange={(e) => void handleUpload(e)}
+            />
+            <Button
+              size="sm"
+              disabled={busy}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload size={16} className="mr-1" />
+              {busy ? 'Working…' : 'Upload asset'}
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              disabled={busy}
+              onClick={() => void handleDelete()}
+            >
+              <Trash2 size={16} className="mr-1" />
+              Delete
+            </Button>
+          </div>
         )}
       </div>
+
+      {actionError && (
+        <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-lg">
+          {actionError}
+        </div>
+      )}
 
       {/* Subcollections */}
       {category.children && category.children.length > 0 && (

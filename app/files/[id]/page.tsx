@@ -7,7 +7,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { fetchFile, fetchComments, fetchContentTypes, type StoredFile, type Comment, downloadFile, type ContentTypeMap } from '@/lib/api'
+import { fetchFile, fetchComments, fetchContentTypes, downloadFile, downloadFileBlob, type StoredFile, type Comment, type ContentTypeMap } from '@/lib/api'
 import { Preview } from '@/components/preview'
 import { StarRating } from '@/components/star-rating'
 import { CommentList } from '@/components/comment-list'
@@ -126,9 +126,24 @@ export default function FileDetailPage() {
           />
           <Button
             onClick={async () => {
-              const res = await downloadFile(file.id)
-              if (res.url) window.open(res.url, '_blank')
-              else if (file.local_file) window.open(file.local_file, '_blank')
+              try {
+                if (file.storage === 'external') {
+                  const res = await downloadFile(file.id)
+                  if (res.url) window.open(res.url, '_blank')
+                  return
+                }
+                const blob = await downloadFileBlob(file.id)
+                const url = URL.createObjectURL(blob)
+                const link = document.createElement('a')
+                link.href = url
+                link.download = file.local_file.split('/').pop() || file.slug
+                document.body.appendChild(link)
+                link.click()
+                link.remove()
+                setTimeout(() => URL.revokeObjectURL(url), 1000)
+              } catch (err) {
+                setError((err as Error).message)
+              }
             }}
             disabled={!file.can_download}
           >

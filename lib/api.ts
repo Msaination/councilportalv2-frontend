@@ -223,6 +223,11 @@ export interface ActiveTeam {
   slug: string
 }
 
+/** True when the user may upload/remove content (admin or staff). */
+export function canManageContent(user: User | null): boolean {
+  return Boolean(user && (user.is_staff || user.capabilities.manage_access))
+}
+
 export interface UploadLog {
   id: number
   file: string
@@ -279,8 +284,82 @@ export async function fetchFile(id: string | number): Promise<StoredFile> {
   return apiFetch<StoredFile>(`/api/files/${id}/`)
 }
 
+/**
+ * Resolve a file download: external files return `{url}`, local files
+ * stream raw bytes (not JSON) — callers should then use downloadFileBlob.
+ */
 export async function downloadFile(id: number): Promise<{ url?: string }> {
-  return apiFetch<{ url?: string }>(`/api/files/${id}/download/`)
+  const request = (token: string) => fetch(
+    `${BASE_URL}/api/files/${id}/download/`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  )
+
+  const token = getAccessToken()
+  if (!token) throw new Error('Not authenticated')
+
+  let response = await request(token)
+  if (response.status === 401) {
+    const refreshed = await refreshAccessToken()
+    if (!refreshed) throw new Error('Not authenticated')
+    response = await request(refreshed)
+  }
+  if (!response.ok) {
+    throw new Error(`Download failed (${response.status})`)
+  }
+
+  const contentType = response.headers.get('content-type') || ''
+  if (contentType.includes('application/json')) {
+    return response.json()
+  }
+  return {}
+}
+
+// ─── Content management (admin & staff) ─────────────────────
+
+export interface UploadInput {
+  file: File
+  category: string
+  title?: string
+  description?: string
+}
+
+/** Upload a file into a category. Requires admin/staff on the backend. */
+export async function uploadFile(input: UploadInput): Promise<StoredFile> {
+  const form = new FormData()
+  form.append('file', input.file)
+  form.append('category', input.category)
+  if (input.title) form.append('title', input.title)
+  if (input.description) form.append('description', input.description)
+  return apiFetch<StoredFile>('/api/files/upload/', {
+    method: 'POST',
+    body: form,
+  })
+}
+
+/** Permanently delete a file. Requires admin/staff on the backend. */
+export async function deleteFile(id: number): Promise<void> {
+  await apiFetch(`/api/files/${id}/`, { method: 'DELETE' })
+}
+
+export interface CreateCollectionInput {
+  title: string
+  parent?: string
+  description?: string
+}
+
+/** Create a collection (category). Requires admin/staff on the backend. */
+export async function createCategory(
+  input: CreateCollectionInput,
+): Promise<Category> {
+  return apiFetch<Category>('/api/categories/', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
+/** Delete a collection and its contents. Requires admin/staff on the backend. */
+export async function deleteCategory(slug: string): Promise<void> {
+  await apiFetch(`/api/categories/${slug}/`, { method: 'DELETE' })
 }
 
 /** Download a local file's bytes with JWT auth (endpoint streams, not JSON). */

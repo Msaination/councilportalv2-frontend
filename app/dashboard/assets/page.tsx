@@ -4,9 +4,13 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { fetchFiles, type StoredFile } from '@/lib/api'
+import {
+  fetchFiles, fetchRootCategories, uploadFile, canManageContent,
+  type Category, type StoredFile,
+} from '@/lib/api'
+import { useAuth } from '@/components/auth-provider'
 import { FileCard } from '@/components/file-card'
 import {
   LayoutGrid,
@@ -14,6 +18,7 @@ import {
   Filter,
   SortAsc,
   SortDesc,
+  Upload,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -31,11 +36,21 @@ type SortDir = 'asc' | 'desc'
 
 export default function AssetsPage() {
   const router = useRouter()
+  const { user } = useAuth()
+  const canManage = canManageContent(user)
   const [assets, setAssets] = useState<StoredFile[]>([])
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [sortBy, setSortBy] = useState<SortKey>('created')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [loading, setLoading] = useState(true)
+
+  // Upload panel (admin/staff only)
+  const [categories, setCategories] = useState<Category[]>([])
+  const [showUpload, setShowUpload] = useState(false)
+  const [uploadCategory, setUploadCategory] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     fetchFiles()
@@ -46,7 +61,46 @@ export default function AssetsPage() {
         }
       })
       .finally(() => setLoading(false))
-  }, [])
+  }, [router])
+
+  useEffect(() => {
+    if (!canManage) return
+    fetchRootCategories()
+      .then(setCategories)
+      .catch(() => setCategories([]))
+  }, [canManage])
+
+  /** Flatten the category tree so the picker shows hierarchy via indentation. */
+  const flattenCategories = (
+    cats: Category[],
+    depth = 0,
+  ): { slug: string; label: string }[] =>
+    cats.flatMap((cat) => [
+      { slug: cat.slug, label: `${'  '.repeat(depth)}${cat.title}` },
+      ...flattenCategories(cat.children || [], depth + 1),
+    ])
+
+  const handlePickFile = (e: ChangeEvent<HTMLInputElement>) => {
+    const picked = e.target.files?.[0]
+    e.target.value = '' // allow re-selecting the same file
+    if (!picked || !uploadCategory || uploading) return
+    void doUpload(picked)
+  }
+
+  const doUpload = async (file: File) => {
+    setUploading(true)
+    setUploadError(null)
+    try {
+      const uploaded = await uploadFile({ file, category: uploadCategory })
+      setAssets((prev) => [uploaded, ...prev])
+      setShowUpload(false)
+      setUploadCategory('')
+    } catch (err) {
+      setUploadError((err as Error).message)
+    } finally {
+      setUploading(false)
+    }
+  }
 
   const sorted = [...assets].sort((a, b) => {
     let cmp = 0
@@ -92,7 +146,18 @@ export default function AssetsPage() {
     <div className="p-6 space-y-4">
       {/* Toolbar */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Assets</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold">Assets</h1>
+          {canManage && (
+            <Button
+              size="sm"
+              onClick={() => { setShowUpload(!showUpload); setUploadError(null) }}
+            >
+              <Upload size={16} className="mr-1" />
+              Upload asset
+            </Button>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           {/* Sort */}
           <DropdownMenu>
@@ -144,6 +209,57 @@ export default function AssetsPage() {
           </div>
         </div>
       </div>
+
+      {/* Upload panel (admin/staff) */}
+      {canManage && showUpload && (
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="space-y-1">
+                <label htmlFor="upload-category" className="text-sm font-medium">
+                  Collection
+                </label>
+                <select
+                  id="upload-category"
+                  className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                  value={uploadCategory}
+                  onChange={(e) => setUploadCategory(e.target.value)}
+                >
+                  <option value="">Choose a collection…</option>
+                  {flattenCategories(categories).map((cat) => (
+                    <option key={cat.slug} value={cat.slug}>
+                      {cat.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                onChange={(e) => handlePickFile(e)}
+              />
+              <Button
+                size="sm"
+                disabled={!uploadCategory || uploading}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {uploading ? 'Uploading…' : 'Choose file'}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => { setShowUpload(false); setUploadError(null) }}
+              >
+                Cancel
+              </Button>
+            </div>
+            {uploadError && (
+              <p className="text-sm text-destructive">{uploadError}</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Content */}
       {viewMode === 'grid' ? (

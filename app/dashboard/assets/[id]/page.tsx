@@ -6,8 +6,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
-import { fetchFile, type StoredFile, type Comment, downloadFile, downloadFileBlob } from '@/lib/api'
+import { useParams, useRouter } from 'next/navigation'
+import { fetchFile, deleteFile, canManageContent, type StoredFile, type Comment, downloadFile, downloadFileBlob } from '@/lib/api'
 import { fetchComments, fetchContentTypes, createShareLink, type Comment as CommentType, type SharedLink } from '@/lib/api'
 import { Preview } from '@/components/preview'
 import { StarRating } from '@/components/star-rating'
@@ -19,7 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/components/auth-provider'
 import {
-  ArrowLeft, Download, FileText, Calendar, Share2, Copy, Check,
+  ArrowLeft, Download, FileText, Calendar, Share2, Copy, Check, Trash2,
 } from 'lucide-react'
 import Link from 'next/link'
 import { formatFileSize } from '@/lib/file-types'
@@ -31,6 +31,10 @@ export default function AssetDetailPage() {
   const id = params.id as string
   const { user } = useAuth()
   const canShare = user?.capabilities.share_files ?? false
+  const canManage = canManageContent(user)
+  const router = useRouter()
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const [file, setFile] = useState<StoredFile | null>(null)
   const [comments, setComments] = useState<Comment[]>([])
   const [ctId, setCtId] = useState<number>(0)
@@ -127,6 +131,22 @@ export default function AssetDetailPage() {
     }
   }
 
+  const handleDelete = async () => {
+    if (!file || deleting) return
+    if (!window.confirm(`Delete "${file.title}"? This cannot be undone.`)) {
+      return
+    }
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      await deleteFile(file.id)
+      router.push('/dashboard/assets')
+    } catch (e) {
+      setDeleteError((e as Error).message)
+      setDeleting(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="p-6">
@@ -199,11 +219,21 @@ export default function AssetDetailPage() {
               <Download size={16} />
               Download
             </Button>
+            {canManage && (
+              <Button
+                variant="destructive"
+                onClick={() => void handleDelete()}
+                disabled={deleting}
+              >
+                <Trash2 size={16} />
+                {deleting ? 'Deleting…' : 'Delete'}
+              </Button>
+            )}
           </div>
         </header>
 
-        {downloadError && (
-          <p className="text-sm text-destructive">{downloadError}</p>
+        {(downloadError || deleteError) && (
+          <p className="text-sm text-destructive">{downloadError || deleteError}</p>
         )}
 
         {/* Rating + Tags */}

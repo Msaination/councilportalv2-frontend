@@ -8,7 +8,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import type { StoredFile } from '@/lib/api'
-import { downloadFile } from '@/lib/api'
+import { downloadFile, downloadFileBlob } from '@/lib/api'
 import { getPreviewKind, formatFileSize } from '@/lib/file-types'
 import { Download, Star } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -25,9 +25,23 @@ export function FileCard({ file }: Props) {
   const handleDownload = async () => {
     setDownloading(true)
     try {
-      const res = await downloadFile(file.id)
-      if (res.url) window.open(res.url, '_blank')
-      else if (file.local_file) window.open(file.local_file, '_blank')
+      if (file.storage === 'external') {
+        const res = await downloadFile(file.id)
+        if (res.url) window.open(res.url, '_blank')
+        return
+      }
+
+      const blob = await downloadFileBlob(file.id)
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = file.local_file.split('/').pop() || file.slug
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+    } catch (err) {
+      console.error('Download failed:', err)
     } finally {
       setDownloading(false)
     }
