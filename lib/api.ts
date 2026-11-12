@@ -35,6 +35,11 @@ function clearTokens() {
   }
 }
 
+/** Store JWTs handed over by the OIDC (Authentik) login handoff route. */
+export function storeTokens(access: string, refresh: string): void {
+  setTokens(access, refresh)
+}
+
 // ─── Auth helpers ───────────────────────────────────────────
 
 /** Exchange credentials for JWT tokens. */

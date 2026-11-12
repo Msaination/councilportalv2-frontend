@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 const MIN_PASSWORD_LENGTH = 4
+const OIDC_LOGIN_URL = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/auth/oidc/authenticate/`
 
 export default function LoginPage() {
   const [username, setUsername] = useState('')
@@ -113,6 +114,24 @@ export default function LoginPage() {
                 {submitting ? 'Signing in...' : 'Sign in'}
               </Button>
             )}
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">or</span>
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => window.location.assign(OIDC_LOGIN_URL)}
+            >
+              Continue with Council SSO
+            </Button>
           </form>
         </CardContent>
       </Card>
