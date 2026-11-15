@@ -36,6 +36,7 @@ interface NavItem {
   href: string
   capability?: Capability
   anyOf?: Capability[]
+  staffOnly?: boolean
 }
 
 const navItems: NavItem[] = [
@@ -49,7 +50,7 @@ const navItems: NavItem[] = [
     label: 'Shared Links', icon: Share2, href: '/dashboard/shared',
     capability: 'share_files',
   },
-  { label: 'Analytics', icon: BarChart3, href: '/dashboard/analytics' },
+  { label: 'Analytics', icon: BarChart3, href: '/dashboard/analytics', staffOnly: true },
   {
     label: 'Committee', icon: Users, href: '/dashboard/team',
     capability: 'view_teams',
@@ -67,6 +68,10 @@ export function AppSidebar() {
   const { user } = useAuth()
 
   const visibleItems = navItems.filter((item) => {
+    if (item.staffOnly && !user?.is_staff) {
+      return false
+    }
+
     if (item.href === '/dashboard/team') {
       return Boolean(user)
     }
