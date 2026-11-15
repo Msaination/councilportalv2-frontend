@@ -184,7 +184,7 @@ export default function CollectionPage() {
               <Link
                 key={child.id}
                 href={`/dashboard/collections/${child.slug}`}
-                className="block p-4 border rounded-lg hover:bg-accent transition-colors"
+                className="block rounded-xl border border-border bg-card p-4 shadow-card transition-colors hover:bg-accent"
               >
                 <div className="flex items-center gap-2">
                   <FolderOpen size={20} className="text-muted-foreground" />
