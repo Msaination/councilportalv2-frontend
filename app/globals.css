@@ -33,9 +33,13 @@
   --color-destructive-foreground: #ffffff;
 
   /* Lines and focus */
-  --color-border: #e0e4dc;
-  --color-input: #cbd2c6;
+  --color-border: #ebede8;
+  --color-input: #e1e5dd;
   --color-ring: #005826;
+
+  /* Elevation */
+  --shadow-card: 0 1px 2px rgb(16 24 20 / 0.04),
+    0 4px 14px rgb(16 24 20 / 0.06);
 }
 
 body {
@@ -44,6 +48,14 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--color-border);
+  }
 }
 
 
