@@ -185,7 +185,7 @@ export default function AssetsPage() {
             <DropdownMenuContent>
               <DropdownMenuItem>All files</DropdownMenuItem>
               <DropdownMenuItem>Images</DropdownMenuItem>
-              <DropdownMenuItem>Documents</DropdownMenuItem>
+              <DropdownMenuItem>Resources</DropdownMenuItem>
               <DropdownMenuItem>Media</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -217,7 +217,7 @@ export default function AssetsPage() {
             <div className="flex flex-wrap items-end gap-3">
               <div className="space-y-1">
                 <label htmlFor="upload-category" className="text-sm font-medium">
-                  Collection
+                  Resource category
                 </label>
                 <select
                   id="upload-category"
@@ -225,7 +225,7 @@ export default function AssetsPage() {
                   value={uploadCategory}
                   onChange={(e) => setUploadCategory(e.target.value)}
                 >
-                  <option value="">Choose a collection…</option>
+                  <option value="">Choose a resource category…</option>
                   {flattenCategories(categories).map((cat) => (
                     <option key={cat.slug} value={cat.slug}>
                       {cat.label}

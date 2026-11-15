@@ -116,7 +116,7 @@ export default function DashboardPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Collections</p>
+                <p className="text-sm text-muted-foreground">Resources</p>
                 <p className="text-3xl font-bold">{categories.length}</p>
               </div>
               <div className="p-2 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
@@ -221,10 +221,10 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Collections */}
+      {/* Resources */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg font-semibold">Collections</CardTitle>
+          <CardTitle className="text-lg font-semibold">Resources</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

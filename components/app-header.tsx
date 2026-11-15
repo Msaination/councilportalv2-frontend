@@ -31,7 +31,7 @@ export function AppHeader() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
           <Input
             type="search"
-            placeholder="Search assets, collections..."
+            placeholder="Search resources, committees..."
             className="pl-10 pr-4"
           />
         </div>
@@ -39,6 +39,17 @@ export function AppHeader() {
 
       {/* Right side */}
       <div className="flex items-center gap-2">
+        <Link
+          href="/dashboard/team"
+          className="inline-flex items-center rounded-full border bg-muted/60 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:bg-muted"
+        >
+          My Committees
+          {user?.active_team && (
+            <span className="ml-1.5 rounded-full bg-background px-1.5 py-0.5 text-[9px] font-semibold text-foreground">
+              {user.active_team.name}
+            </span>
+          )}
+        </Link>
         <Button variant="ghost" size="sm" className="h-9 w-9">
           <Bell size={18} />
         </Button>

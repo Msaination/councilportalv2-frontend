@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Emalahleni Council Portal",
-  description: "Document repository for Councillors and Top Management",
+  description: "Resource repository for Councillors and Top Management",
   icons: {
     icon: '/emalahleni-logo.png',
     apple: '/emalahleni-logo.png',

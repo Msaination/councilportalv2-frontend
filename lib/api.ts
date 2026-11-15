@@ -105,10 +105,13 @@ function isPaginated(data: unknown): data is PaginatedResponse<unknown> {
     'results' in data && Array.isArray((data as PaginatedResponse<unknown>).results)
 }
 
-/** Fetch with JWT auth header. Returns parsed JSON (unwraps DRF pagination). */
+/** Fetch with JWT auth header. Returns parsed JSON (unwraps DRF pagination
+ *  unless `unwrapPaginated` is false — needed for custom envelopes that also
+ *  carry a `results` array, e.g. /api/complaints/). */
 async function apiFetch<T>(
   path: string,
   opts: RequestInit = {},
+  { unwrapPaginated = true }: { unwrapPaginated?: boolean } = {},
 ): Promise<T> {
   let token = getAccessToken()
   if (!token) throw new Error('Not authenticated')
@@ -136,7 +139,7 @@ async function apiFetch<T>(
       }
       const text = await retryResp.text()
       const json = text ? JSON.parse(text) : {}
-      return (isPaginated(json) ? json.results : json) as T
+      return (unwrapPaginated && isPaginated(json) ? json.results : json) as T
     }
   }
 
@@ -148,7 +151,7 @@ async function apiFetch<T>(
   const text = await resp.text()
   if (!text) return {} as T
   const json = JSON.parse(text)
-  return (isPaginated(json) ? json.results : json) as T
+  return (unwrapPaginated && isPaginated(json) ? json.results : json) as T
 }
 
 // ─── Typed API functions ─────────────────────────────────────
@@ -352,7 +355,7 @@ export interface CreateCollectionInput {
   description?: string
 }
 
-/** Create a collection (category). Requires admin/staff on the backend. */
+/** Create a resource category. Requires admin/staff on the backend. */
 export async function createCategory(
   input: CreateCollectionInput,
 ): Promise<Category> {
@@ -362,7 +365,7 @@ export async function createCategory(
   })
 }
 
-/** Delete a collection and its contents. Requires admin/staff on the backend. */
+/** Delete a resource category and its contents. Requires admin/staff on the backend. */
 export async function deleteCategory(slug: string): Promise<void> {
   await apiFetch(`/api/categories/${slug}/`, { method: 'DELETE' })
 }
@@ -436,6 +439,37 @@ export async function fetchDownloadLogs(): Promise<DownloadLog[]> {
 
 export async function fetchUploadLogs(): Promise<UploadLog[]> {
   return apiFetch<UploadLog[]>('/api/admin/stats/uploads/')
+}
+
+// ─── Complaints (CMS gateway, ward-filtered server-side) ────
+
+export interface Complaint {
+  id: number
+  reference_number: string
+  subject: string
+  status: string
+  priority: string | null
+  ward: string | null
+  area: string | null
+  department: string | null
+  section: string | null
+  description: string | null
+  received_channel: string | null
+  date_reported: string | null
+  created_at: string
+}
+
+export interface MyComplaints {
+  ward: number | null
+  count: number
+  results: Complaint[]
+  team: { id: number; name: string } | null
+}
+
+/** The logged-in user's ward complaints (filtering happens in Django). */
+export async function fetchMyComplaints(): Promise<MyComplaints> {
+  // Keep the envelope: it carries ward/count alongside the results array.
+  return apiFetch<MyComplaints>('/api/complaints/', {}, { unwrapPaginated: false })
 }
 
 // ─── Shared links ──────────────────────────────────────────

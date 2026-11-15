@@ -1,5 +1,5 @@
 /**
- * Collection detail — shows a single collection's children + files.
+ * Resource category detail — shows a single category's child sections + resources.
  * URL: /dashboard/collections/[slug]
  */
 
@@ -55,7 +55,7 @@ export default function CollectionPage() {
     const fileCount = category.files?.length ?? 0
     const childCount = category.children?.length ?? 0
     const extras = fileCount || childCount
-      ? ` This also removes ${fileCount} asset(s) and ${childCount} subcollection(s).`
+      ? ` This also removes ${fileCount} resource(s) and ${childCount} subcategory(s).`
       : ''
     if (!window.confirm(`Delete "${category.title}"?${extras}`)) return
     setBusy(true)
@@ -119,7 +119,7 @@ export default function CollectionPage() {
     return (
       <div className="p-6 text-center py-12">
         <FolderOpen size={48} className="mx-auto mb-2 text-muted-foreground" />
-        <p>Collection not found.</p>
+        <p>Resource category not found.</p>
       </div>
     )
   }
@@ -129,7 +129,7 @@ export default function CollectionPage() {
       {/* Back */}
       <Link href="/dashboard/collections" className="flex items-center text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft size={16} className="mr-1" />
-        Back to collections
+        Back to resources
       </Link>
 
       {/* Header */}
@@ -175,10 +175,10 @@ export default function CollectionPage() {
         </div>
       )}
 
-      {/* Subcollections */}
+      {/* Subcategories */}
       {category.children && category.children.length > 0 && (
         <section>
-          <h2 className="text-lg font-semibold mb-3">Subcollections</h2>
+          <h2 className="text-lg font-semibold mb-3">Subcategories</h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {category.children.map((child) => (
               <Link
@@ -211,7 +211,7 @@ export default function CollectionPage() {
             ))}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">No assets in this collection.</p>
+          <p className="text-sm text-muted-foreground">No resources in this category.</p>
         )}
       </section>
     </div>

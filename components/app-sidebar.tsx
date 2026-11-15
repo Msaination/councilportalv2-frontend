@@ -12,6 +12,7 @@ import {
   CalendarDays,
   Folder,
   FileImage,
+  Inbox,
   Share2,
   BarChart3,
   Users,
@@ -41,14 +42,16 @@ const navItems: NavItem[] = [
   { label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
   { label: 'Calendar', icon: CalendarDays, href: '/dashboard/calendar' },
   { label: 'Assets', icon: FileImage, href: '/dashboard/assets' },
-  { label: 'Collections', icon: Folder, href: '/dashboard/collections' },
+  { label: 'Resources', icon: Folder, href: '/dashboard/collections' },
+  // Ordinary member access (§6.5) — every ward councillor sees their own.
+  { label: 'My Complaints', icon: Inbox, href: '/dashboard/complaints' },
   {
     label: 'Shared Links', icon: Share2, href: '/dashboard/shared',
     capability: 'share_files',
   },
   { label: 'Analytics', icon: BarChart3, href: '/dashboard/analytics' },
   {
-    label: 'Team', icon: Users, href: '/dashboard/team',
+    label: 'Committee', icon: Users, href: '/dashboard/team',
     capability: 'view_teams',
   },
   {
@@ -64,6 +67,10 @@ export function AppSidebar() {
   const { user } = useAuth()
 
   const visibleItems = navItems.filter((item) => {
+    if (item.href === '/dashboard/team') {
+      return Boolean(user)
+    }
+
     const hasSingle = !item.capability || user?.capabilities[item.capability]
     const hasAny = !item.anyOf ||
       item.anyOf.some((capability) => user?.capabilities[capability])

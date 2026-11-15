@@ -123,9 +123,9 @@ export default function TeamPage() {
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Team</h1>
+        <h1 className="text-2xl font-bold">Committee</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Workspaces keep each team&apos;s categories and assets isolated.
+          Committees keep each committee&apos;s resource categories and assets isolated.
         </p>
       </div>
 
@@ -138,13 +138,13 @@ export default function TeamPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <Users size={18} /> Your teams
+            <Users size={18} /> Your committees
           </CardTitle>
         </CardHeader>
         <CardContent>
           {teams.length === 0 ? (
             <p className="text-sm text-muted-foreground py-4">
-              You are not a member of any team yet. Create one below.
+              You are not a member of any committee yet. Create one below.
             </p>
           ) : (
             <ul className="divide-y">
@@ -192,11 +192,11 @@ export default function TeamPage() {
             <Input
               value={newTeamName}
               onChange={(e) => setNewTeamName(e.target.value)}
-              placeholder="New team name"
+              placeholder="New committee name"
               disabled={busy}
             />
             <Button onClick={handleCreateTeam} disabled={busy || !newTeamName.trim()}>
-              <Plus size={16} /> Create team
+              <Plus size={16} /> Create committee
             </Button>
           </div>
         </CardContent>

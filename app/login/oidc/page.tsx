@@ -8,7 +8,7 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { startTransition, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { storeTokens } from '@/lib/api'
 import { LogIn, ShieldCheck, ShieldAlert } from 'lucide-react'
@@ -24,7 +24,9 @@ export default function OidcHandoffPage() {
     const refresh = params.get('refresh')
 
     if (!access || !refresh) {
-      setError('SSO login incomplete — no tokens received. Please try again.')
+      startTransition(() => {
+        setError('SSO login incomplete — no tokens received. Please try again.')
+      })
       return
     }
 

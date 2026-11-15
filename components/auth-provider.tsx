@@ -35,7 +35,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    void reload()
+    let cancelled = false
+    const initialize = async () => {
+      const authenticatedUser = await checkJwtAuth()
+      if (cancelled) return
+      setUser(authenticatedUser)
+      setLoading(false)
+    }
+    void initialize()
+    return () => { cancelled = true }
   }, [])
 
   const handleLogin = async (username: string, password: string): Promise<boolean> => {

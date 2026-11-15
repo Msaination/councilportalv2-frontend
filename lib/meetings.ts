@@ -7,7 +7,7 @@ export function isoDay(date: Date): string {
   return `${date.getFullYear()}-${month}-${day}`
 }
 
-/** Where the meeting's time links to: document, collection, or details. */
+/** Where the meeting's time links to: resource, category, or details. */
 export function meetingHref(meeting: Meeting): string {
   if (meeting.file) {
     return `/dashboard/assets/${meeting.file}`

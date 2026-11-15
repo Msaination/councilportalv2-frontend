@@ -56,7 +56,7 @@ export default function LoginPage() {
           </div>
           <CardTitle className="text-2xl">Emalahleni Council Portal</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            Sign in to access documents
+            Sign in to access council resources
           </p>
         </CardHeader>
 

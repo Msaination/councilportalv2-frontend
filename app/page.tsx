@@ -40,7 +40,7 @@ export default function PortalPage() {
               Emalahleni Council Portal
             </h1>
             <p className="text-muted-foreground mt-1">
-              Document repository for Councillors and Top Management
+              Resource repository for Councillors and Top Management
             </p>
           </div>
         </div>
@@ -56,7 +56,7 @@ export default function PortalPage() {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
         <input
           type="search"
-          placeholder="Search documents..."
+          placeholder="Search resources..."
           className="w-full pl-10 pr-4 py-2 border rounded-lg"
           disabled
         />
