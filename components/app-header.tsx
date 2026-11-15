@@ -24,7 +24,7 @@ export function AppHeader() {
   const { user } = useAuth()
 
   return (
-    <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:px-6">
+    <header className="flex h-14 items-center gap-4 bg-brand px-4 text-brand-foreground lg:px-6">
       {/* Search */}
       <div className="flex-1">
         <div className="relative max-w-md">
@@ -41,11 +41,11 @@ export function AppHeader() {
       <div className="flex items-center gap-2">
         <Link
           href="/dashboard/team"
-          className="inline-flex items-center rounded-full border bg-muted/60 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:bg-muted"
+          className="inline-flex items-center rounded-full border border-white/30 bg-white/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-white transition-colors hover:bg-white/20"
         >
           My Committees
           {user?.active_team && (
-            <span className="ml-1.5 rounded-full bg-background px-1.5 py-0.5 text-[9px] font-semibold text-foreground">
+            <span className="ml-1.5 rounded-full bg-white px-1.5 py-0.5 text-[9px] font-semibold text-brand">
               {user.active_team.name}
             </span>
           )}
@@ -71,7 +71,7 @@ export function AppHeader() {
               <span className="hidden sm:inline text-sm font-medium">
                 {user?.username || 'User'}
               </span>
-              <ChevronDown size={14} className="text-muted-foreground" />
+              <ChevronDown size={14} className="text-white/70" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">

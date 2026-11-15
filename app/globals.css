@@ -1,57 +1,46 @@
 @import "tailwindcss";
 
-/** Portal-wide theme — matches the ShadCN color palette. */
+/** ECOP theme — aligned with the ELM certificate styleguide palette. */
 
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-
-  /* Light mode */
-  --background: 255 255 255;
-  --foreground: 222.2 47.4% 11.2%;
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 56.9%;
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222.2 47.4% 11.2%;
-  --border: 210 30% 96.1%;
-  --input: 210 30% 96.1%;
-  --ring: 222.2 47.4% 11.2%;
-  --card: 0 0% 100%;
-  --card-foreground: 222.2 47.4% 11.2%;
-
-  /* Semantic aliases */
-  --primary: 224 71% 4%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 210 40% 98%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 255 255 255;
-  --popover: 0 0% 100%;
-  --popover-foreground: 222.2 47.4% 11.2%;
 }
 
-/* Dark mode overrides */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: 224 71% 4%;
-    --foreground: 0 0% 100%;
-    --muted: 0 0% 18%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 0 0% 18%;
-    --accent-foreground: 0 0% 100%;
-    --border: 240 6% 20%;
-    --input: 240 6% 20%;
-    --ring: 224 71% 90%;
-    --card: 0 0% 12%;
-    --card-foreground: 0 0% 100%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-  }
+@theme {
+  /* Surfaces */
+  --color-background: #f5f6f4;
+  --color-foreground: #16211a;
+  --color-card: #ffffff;
+  --color-card-foreground: #16211a;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #16211a;
+
+  /* Brand */
+  --color-primary: #005826;
+  --color-primary-foreground: #ffffff;
+  --color-brand: #0c9444;
+  --color-brand-foreground: #ffffff;
+
+  /* Supporting surfaces */
+  --color-secondary: #eef0ec;
+  --color-secondary-foreground: #16211a;
+  --color-muted: #eef0ec;
+  --color-muted-foreground: #5f6b62;
+  --color-accent: #e6efe8;
+  --color-accent-foreground: #005826;
+  --color-destructive: #dc2626;
+  --color-destructive-foreground: #ffffff;
+
+  /* Lines and focus */
+  --color-border: #e0e4dc;
+  --color-input: #cbd2c6;
+  --color-ring: #005826;
 }
 
 body {
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
+  background-color: var(--color-background);
+  color: var(--color-foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
