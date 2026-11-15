@@ -54,7 +54,7 @@ export default function LoginPage() {
           <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
             <LogIn size={24} className="text-primary" />
           </div>
-          <CardTitle className="text-2xl">ECOP</CardTitle>
+          <CardTitle className="text-2xl">Emalahleni Council Portal (ECOP)</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
             Sign in to access council resources
           </p>

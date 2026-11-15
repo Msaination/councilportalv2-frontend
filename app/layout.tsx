@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ECOP — Emalahleni Council Portal",
+  title: "Emalahleni Council Portal (ECOP)",
   description: "Resource repository for Councillors and Top Management",
   icons: {
     icon: '/emalahleni-logo.png',
@@ -35,8 +35,8 @@ export default function RootLayout({
           <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <nav className="max-w-4xl mx-auto h-14 flex items-center px-6">
               <Link href="/" className="flex items-center gap-2 font-semibold text-foreground">
-                <img src="/emalahleni-logo.png" alt="ECOP — Emalahleni Council Portal" className="h-8 w-8" />
-                ECOP
+                <img src="/emalahleni-logo.png" alt="Emalahleni Council Portal" className="h-8 w-8" />
+                Emalahleni Council Portal (ECOP)
               </Link>
             </nav>
           </header>
