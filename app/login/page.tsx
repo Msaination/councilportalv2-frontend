@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
+const OIDC_LOGIN_URL = `${getApiBaseUrl()}/api/auth/oidc/authenticate/`
+
 export default function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -52,7 +54,7 @@ export default function LoginPage() {
           <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
             <LogIn size={24} className="text-primary" />
           </div>
-          <CardTitle className="text-2xl">Emalahleni Council Portal (ECOP)</CardTitle>
+          <CardTitle className="text-2xl">Emalahleni Council Portal (ECoP)</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
             Sign in to access council resources
           </p>
@@ -128,9 +130,7 @@ export default function LoginPage() {
               type="button"
               variant="outline"
               className="w-full"
-              onClick={() => window.location.assign(
-                `${getApiBaseUrl()}/api/auth/oidc/authenticate/`,
-              )}
+              onClick={() => window.location.assign(OIDC_LOGIN_URL)}
             >
               Continue with Council SSO
             </Button>
