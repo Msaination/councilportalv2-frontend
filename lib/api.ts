@@ -8,7 +8,36 @@
  * - Base URL from NEXT_PUBLIC_API_URL env var
  */
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+const CONFIGURED_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+
+/** Resolve loopback configuration for users opening ECOP from another device. */
+export function getApiBaseUrl(): string {
+  if (typeof window === 'undefined') {
+    return CONFIGURED_API_URL.replace(/\/+$/, '')
+  }
+
+  try {
+    const apiUrl = new URL(CONFIGURED_API_URL, window.location.origin)
+    const loopbackHosts = new Set(['localhost', '127.0.0.1', '::1'])
+
+    if (loopbackHosts.has(apiUrl.hostname)) {
+      const browserIsLocal = loopbackHosts.has(window.location.hostname)
+      const frontendUsesDefaultDevPort = window.location.port === '3000'
+
+      if (!browserIsLocal) {
+        apiUrl.hostname = window.location.hostname
+        apiUrl.protocol = window.location.protocol
+      }
+
+      apiUrl.port = process.env.NEXT_PUBLIC_API_PORT ||
+        (frontendUsesDefaultDevPort ? '8000' : '8098')
+    }
+
+    return `${apiUrl.origin}${apiUrl.pathname}`.replace(/\/+$/, '')
+  } catch {
+    return CONFIGURED_API_URL.replace(/\/+$/, '')
+  }
+}
 
 // ─── Token storage ──────────────────────────────────────────
 
@@ -47,7 +76,7 @@ export async function loginJwt(
   username: string,
   password: string,
 ): Promise<boolean> {
-  const resp = await fetch(`${BASE_URL}/api/auth/token/`, {
+  const resp = await fetch(`${getApiBaseUrl()}/api/auth/token/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),
@@ -62,7 +91,7 @@ export async function loginJwt(
 async function refreshAccessToken(): Promise<string | null> {
   const refresh = getRefreshToken()
   if (!refresh) return null
-  const resp = await fetch(`${BASE_URL}/api/auth/token/refresh/`, {
+  const resp = await fetch(`${getApiBaseUrl()}/api/auth/token/refresh/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ refresh }),
@@ -123,14 +152,14 @@ async function apiFetch<T>(
     ...(opts.headers as Record<string, string> || {}),
   }
 
-  const resp = await fetch(`${BASE_URL}${path}`, { ...opts, headers })
+  const resp = await fetch(`${getApiBaseUrl()}${path}`, { ...opts, headers })
 
   // Retry with refreshed token on 401
   if (resp.status === 401 && !(opts.headers as Record<string, string>)?.['x-retry']) {
     const newToken = await refreshAccessToken()
     if (newToken) {
       token = newToken
-      const retryResp = await fetch(`${BASE_URL}${path}`, {
+      const retryResp = await fetch(`${getApiBaseUrl()}${path}`, {
         ...opts,
         headers: { ...headers, Authorization: `Bearer ${newToken}` },
       })
@@ -298,7 +327,7 @@ export async function fetchFile(id: string | number): Promise<StoredFile> {
  */
 export async function downloadFile(id: number): Promise<{ url?: string }> {
   const request = (token: string) => fetch(
-    `${BASE_URL}/api/files/${id}/download/`,
+    `${getApiBaseUrl()}/api/files/${id}/download/`,
     { headers: { Authorization: `Bearer ${token}` } },
   )
 
@@ -373,7 +402,7 @@ export async function deleteCategory(slug: string): Promise<void> {
 /** Download a local file's bytes with JWT auth (endpoint streams, not JSON). */
 export async function downloadFileBlob(id: number): Promise<Blob> {
   const request = (token: string) => fetch(
-    `${BASE_URL}/api/files/${id}/download/`,
+    `${getApiBaseUrl()}/api/files/${id}/download/`,
     { headers: { Authorization: `Bearer ${token}` } },
   )
 
@@ -444,7 +473,7 @@ export async function fetchUploadLogs(): Promise<UploadLog[]> {
 // ─── Complaints (CMS gateway, ward-filtered server-side) ────
 
 export interface Complaint {
-  id: number
+  id: string
   reference_number: string
   subject: string
   status: string
@@ -452,7 +481,7 @@ export interface Complaint {
   ward: string | null
   area: string | null
   department: string | null
-  section: string | null
+  issue_type: string | null
   description: string | null
   received_channel: string | null
   date_reported: string | null
@@ -534,7 +563,7 @@ export function sharedDownloadUrl(
   if (password) params.set('password', password)
   if (inline) params.set('inline', '1')
   const qs = params.toString()
-  return `${BASE_URL}/api/shared/${token}/download/${qs ? `?${qs}` : ''}`
+  return `${getApiBaseUrl()}/api/shared/${token}/download/${qs ? `?${qs}` : ''}`
 }
 
 /** Fetch a public share (no JWT required). */
@@ -545,7 +574,7 @@ export async function fetchSharedLink(
   const params = new URLSearchParams()
   if (password) params.set('password', password)
   const qs = params.toString()
-  const resp = await fetch(`${BASE_URL}/api/shared/${token}/${qs ? `?${qs}` : ''}`)
+  const resp = await fetch(`${getApiBaseUrl()}/api/shared/${token}/${qs ? `?${qs}` : ''}`)
 
   if (resp.status === 401) {
     const data = await resp.json().catch(() => ({}))

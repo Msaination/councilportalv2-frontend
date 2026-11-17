@@ -183,7 +183,7 @@ export default function ComplaintsPage() {
                     <p className="text-xs text-muted-foreground mt-1">
                       {c.reference_number}
                       {c.department ? ` · ${c.department}` : ''}
-                      {c.section ? ` · ${c.section}` : ''}
+                      {c.issue_type ? ` · ${c.issue_type}` : ''}
                     </p>
                   </div>
                   <Badge variant={statusVariant(c.status)}>{c.status}</Badge>

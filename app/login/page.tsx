@@ -3,15 +3,12 @@
 'use client'
 
 import { useState } from 'react'
-import { loginJwt, checkJwtAuth } from '@/lib/api'
+import { getApiBaseUrl, loginJwt, checkJwtAuth } from '@/lib/api'
 import { useRouter } from 'next/navigation'
 import { LogIn, Lock, User, Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-
-const MIN_PASSWORD_LENGTH = 4
-const OIDC_LOGIN_URL = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/auth/oidc/authenticate/`
 
 export default function LoginPage() {
   const [username, setUsername] = useState('')
@@ -21,15 +18,16 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
-  const showSubmit = password.length >= MIN_PASSWORD_LENGTH
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!showSubmit) return
+    const formData = new FormData(e.currentTarget as HTMLFormElement)
+    const submittedUsername = String(formData.get('username') || username).trim()
+    const submittedPassword = String(formData.get('password') || password)
+    if (!submittedUsername || !submittedPassword) return
     setSubmitting(true)
     setError(null)
     try {
-      const ok = await loginJwt(username, password)
+      const ok = await loginJwt(submittedUsername, submittedPassword)
       if (ok) {
         const user = await checkJwtAuth()
         router.push(
@@ -73,7 +71,9 @@ export default function LoginPage() {
                 <User size={16} /> Username
               </label>
               <Input
+                name="username"
                 type="text"
+                autoComplete="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
@@ -87,7 +87,9 @@ export default function LoginPage() {
               </label>
               <div className="relative">
                 <Input
+                  name="password"
                   type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -105,15 +107,13 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {showSubmit && (
-              <Button
-                type="submit"
-                disabled={submitting}
-                className="w-full cursor-pointer bg-green-600 text-white hover:bg-green-700"
-              >
-                {submitting ? 'Signing in...' : 'Sign in'}
-              </Button>
-            )}
+            <Button
+              type="submit"
+              disabled={submitting}
+              className="w-full cursor-pointer bg-green-600 text-white hover:bg-green-700"
+            >
+              {submitting ? 'Signing in...' : 'Sign in'}
+            </Button>
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -128,7 +128,9 @@ export default function LoginPage() {
               type="button"
               variant="outline"
               className="w-full"
-              onClick={() => window.location.assign(OIDC_LOGIN_URL)}
+              onClick={() => window.location.assign(
+                `${getApiBaseUrl()}/api/auth/oidc/authenticate/`,
+              )}
             >
               Continue with Council SSO
             </Button>
