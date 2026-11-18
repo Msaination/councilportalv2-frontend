@@ -92,13 +92,13 @@ export default function CollectionsPage() {
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold">Resources</h1>
+        <h1 className="text-2xl font-bold">Files</h1>
         <div className="flex items-center gap-2">
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
             <Input
               type="search"
-              placeholder="Search resources..."
+              placeholder="Search files..."
               className="pl-10"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -110,7 +110,7 @@ export default function CollectionsPage() {
               onClick={() => { setShowNewForm(!showNewForm); setFormError(null) }}
             >
               <Plus size={16} className="mr-1" />
-              New resource
+              New folder
             </Button>
           )}
         </div>
@@ -120,7 +120,7 @@ export default function CollectionsPage() {
         <Card>
           <CardContent className="p-4 space-y-2">
             <Input
-              placeholder="Resource title (e.g. Council Minutes 2026)"
+              placeholder="Folder name (e.g. Council Minutes 2026)"
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') void handleCreate() }}
@@ -135,7 +135,7 @@ export default function CollectionsPage() {
                 onClick={() => void handleCreate()}
                 disabled={creating || !newTitle.trim()}
               >
-                {creating ? 'Creating…' : 'Create'}
+                {creating ? 'Creating…' : 'Create folder'}
               </Button>
               <Button
                 size="sm"
@@ -152,7 +152,7 @@ export default function CollectionsPage() {
       {filtered.length > 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Category Tree</CardTitle>
+            <CardTitle className="text-lg">Folders</CardTitle>
           </CardHeader>
           <CardContent>
             <CategoryTree categories={filtered} />
@@ -162,7 +162,7 @@ export default function CollectionsPage() {
         <div className="text-center py-12">
           <Folder size={48} className="mx-auto mb-2 text-muted-foreground" />
           <p className="text-muted-foreground">
-            No resources match your search.
+            No files or folders match your search.
           </p>
         </div>
       )}

@@ -8,15 +8,16 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
-  fetchCategory, uploadFile, deleteCategory, canManageContent,
-  type Category, type StoredFile,
+  fetchCategory, uploadFile, deleteCategory, createCategory,
+  canManageContent, type Category, type StoredFile,
 } from '@/lib/api'
 import { useAuth } from '@/components/auth-provider'
 import { FileCard } from '@/components/file-card'
-import { ArrowLeft, FolderOpen, Upload, Trash2 } from 'lucide-react'
+import { ArrowLeft, FolderOpen, FolderPlus, Upload, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,6 +29,10 @@ export default function CollectionPage() {
   const [error, setError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [showSubfolderForm, setShowSubfolderForm] = useState(false)
+  const [subfolderTitle, setSubfolderTitle] = useState('')
+  const [creatingSubfolder, setCreatingSubfolder] = useState(false)
+  const [subfolderError, setSubfolderError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const { user } = useAuth()
@@ -47,6 +52,24 @@ export default function CollectionPage() {
       setActionError((err as Error).message)
     } finally {
       setBusy(false)
+    }
+  }
+
+  const handleCreateSubfolder = async () => {
+    const title = subfolderTitle.trim()
+    if (!title || !category || creatingSubfolder) return
+    setCreatingSubfolder(true)
+    setSubfolderError(null)
+    try {
+      const created = await createCategory({ title, parent: category.slug })
+      setCategory((prev) =>
+        prev ? { ...prev, children: [...(prev.children || []), created] } : prev)
+      setSubfolderTitle('')
+      setShowSubfolderForm(false)
+    } catch (err) {
+      setSubfolderError((err as Error).message)
+    } finally {
+      setCreatingSubfolder(false)
     }
   }
 
@@ -119,7 +142,7 @@ export default function CollectionPage() {
     return (
       <div className="p-6 text-center py-12">
         <FolderOpen size={48} className="mx-auto mb-2 text-muted-foreground" />
-        <p>Resource category not found.</p>
+        <p>Folder not found.</p>
       </div>
     )
   }
@@ -129,7 +152,7 @@ export default function CollectionPage() {
       {/* Back */}
       <Link href="/dashboard/collections" className="flex items-center text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft size={16} className="mr-1" />
-        Back to resources
+        Back to files
       </Link>
 
       {/* Header */}
@@ -148,6 +171,18 @@ export default function CollectionPage() {
               className="hidden"
               onChange={(e) => void handleUpload(e)}
             />
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={busy}
+              onClick={() => {
+                setShowSubfolderForm((open) => !open)
+                setSubfolderError(null)
+              }}
+            >
+              <FolderPlus size={16} className="mr-1" />
+              New subfolder
+            </Button>
             <Button
               size="sm"
               disabled={busy}
@@ -175,12 +210,48 @@ export default function CollectionPage() {
         </div>
       )}
 
-      {/* Subcategories */}
-      {category.children && category.children.length > 0 && (
+      {canManage && showSubfolderForm && (
+        <Card>
+          <CardContent className="p-4 space-y-2">
+            <Input
+              placeholder="Subfolder name (e.g. 2026 Minutes)"
+              value={subfolderTitle}
+              onChange={(e) => setSubfolderTitle(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') void handleCreateSubfolder() }}
+              autoFocus
+            />
+            <p className="text-xs text-muted-foreground">
+              Created inside &ldquo;{category.title}&rdquo;.
+            </p>
+            {subfolderError && (
+              <p className="text-sm text-destructive">{subfolderError}</p>
+            )}
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                onClick={() => void handleCreateSubfolder()}
+                disabled={creatingSubfolder || !subfolderTitle.trim()}
+              >
+                {creatingSubfolder ? 'Creating…' : 'Create subfolder'}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => { setShowSubfolderForm(false); setSubfolderError(null) }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Subfolders */}
+      {((category.children && category.children.length > 0) || showSubfolderForm) && (
         <section>
-          <h2 className="text-lg font-semibold mb-3">Subcategories</h2>
+          <h2 className="text-lg font-semibold mb-3">Subfolders</h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {category.children.map((child) => (
+            {(category.children ?? []).map((child) => (
               <Link
                 key={child.id}
                 href={`/dashboard/collections/${child.slug}`}
@@ -211,7 +282,7 @@ export default function CollectionPage() {
             ))}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">No resources in this category.</p>
+          <p className="text-sm text-muted-foreground">No files in this folder.</p>
         )}
       </section>
     </div>
