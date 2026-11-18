@@ -191,7 +191,7 @@ export default function CollectionPage() {
                   <span className="font-medium">{child.title}</span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {child.file_count} assets
+                  {child.file_count} files
                 </p>
               </Link>
             ))}
@@ -202,7 +202,7 @@ export default function CollectionPage() {
       {/* Files */}
       <section>
         <h2 className="text-lg font-semibold mb-3">
-          Assets ({category.files?.length || 0})
+          Files ({category.files?.length || 0})
         </h2>
         {category.files && category.files.length > 0 ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
