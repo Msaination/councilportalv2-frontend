@@ -69,8 +69,8 @@ export default function SharedLinksPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Shared Links</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Time-limited links you created for clients. Create new links from an
-          asset&apos;s detail page.
+          Time-limited links you created for clients. Create new links from a
+          file&apos;s detail page.
         </p>
       </div>
 
@@ -92,7 +92,7 @@ export default function SharedLinksPage() {
               <Link2 size={40} className="mx-auto mb-2" />
               <p className="mb-3">No share links yet.</p>
               <Link href="/dashboard/assets" className="text-primary underline">
-                Go to assets
+                Go to files
               </Link>
             </div>
           ) : (

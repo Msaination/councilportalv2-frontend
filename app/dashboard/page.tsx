@@ -236,7 +236,7 @@ export default function DashboardPage() {
               >
                 <h3 className="font-medium">{cat.title}</h3>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {cat.file_count} assets
+                  {cat.file_count} files
                 </p>
               </Link>
             ))}

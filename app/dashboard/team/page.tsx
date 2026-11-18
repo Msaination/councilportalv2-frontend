@@ -125,7 +125,7 @@ export default function TeamPage() {
       <div>
         <h1 className="text-2xl font-bold">Committee</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Committees keep each committee&apos;s resource categories and assets isolated.
+          Committees keep each committee&apos;s resource categories and files isolated.
         </p>
       </div>
 

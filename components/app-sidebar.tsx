@@ -1,5 +1,5 @@
 /**
- * AppSidebar — collapsible navigation for the ECOP dashboard.
+ * AppSidebar — collapsible navigation for the ECoP dashboard.
  * Uses shadcn/ui + Radix UI primitives.
  */
 
@@ -93,13 +93,13 @@ export function AppSidebar() {
       <div className="flex items-center justify-between p-3 border-b">
         {!collapsed && (
           <Link href="/dashboard" className="flex items-center gap-2 font-semibold text-foreground">
-            <img src="/emalahleni-logo.png" alt="ECOP — Emalahleni Council Portal" className="h-6 w-6" />
-            ECOP
+            <img src="/emalahleni-logo.png" alt="ECoP — Emalahleni Council Portal" className="h-6 w-6" />
+            ECoP
           </Link>
         )}
         {collapsed && (
           <Link href="/dashboard" className="mx-auto block">
-            <img src="/emalahleni-logo.png" alt="ECOP — Emalahleni Council Portal" className="h-6 w-6" />
+            <img src="/emalahleni-logo.png" alt="ECoP — Emalahleni Council Portal" className="h-6 w-6" />
           </Link>
         )}
         <Tooltip>

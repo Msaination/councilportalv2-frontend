@@ -37,7 +37,7 @@ export default function PortalPage() {
           <img src="/emalahleni-logo.png" alt="Emalahleni" className="h-10 w-10" />
           <div>
             <h1 className="text-3xl font-bold text-foreground">
-              Emalahleni Council Portal (ECOP)
+              Emalahleni Council Portal (ECoP)
             </h1>
             <p className="text-muted-foreground mt-1">
               Resource repository for Councillors and Top Management

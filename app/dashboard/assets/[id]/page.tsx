@@ -1,6 +1,6 @@
 /**
- * Asset detail page — preview, metadata, comments, ratings, download.
- * URL: /dashboard/assets/[id]
+ * File detail page — preview, metadata, comments, ratings, download.
+ * URL: /files/[id]
  */
 
 'use client'
@@ -26,7 +26,7 @@ import { formatFileSize } from '@/lib/file-types'
 
 export const dynamic = 'force-dynamic'
 
-export default function AssetDetailPage() {
+export default function FileDetailPage() {
   const params = useParams()
   const id = params.id as string
   const { user } = useAuth()
@@ -173,7 +173,7 @@ export default function AssetDetailPage() {
     return (
       <div className="p-6 text-center py-12">
         <FileText size={48} className="mx-auto mb-2 text-muted-foreground" />
-        <p>Asset not found.</p>
+        <p>File not found.</p>
       </div>
     )
   }
@@ -183,7 +183,7 @@ export default function AssetDetailPage() {
       {/* Back */}
       <Link href="/dashboard/assets" className="flex items-center text-sm text-muted-foreground hover:text-foreground mb-4">
         <ArrowLeft size={16} className="mr-1" />
-        Back to assets
+        Back to resources
       </Link>
 
       <article className="space-y-6">

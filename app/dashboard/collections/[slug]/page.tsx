@@ -154,7 +154,7 @@ export default function CollectionPage() {
               onClick={() => fileInputRef.current?.click()}
             >
               <Upload size={16} className="mr-1" />
-              {busy ? 'Working…' : 'Upload asset'}
+              {busy ? 'Working…' : 'Upload file'}
             </Button>
             <Button
               size="sm"

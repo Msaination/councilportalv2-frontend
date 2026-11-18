@@ -1,5 +1,5 @@
 /**
- * Assets management page — grid + table view with filters.
+ * File management page — grid + table view with filters.
  */
 
 'use client'
@@ -34,11 +34,11 @@ type ViewMode = 'grid' | 'table'
 type SortKey = 'title' | 'created' | 'download_count'
 type SortDir = 'asc' | 'desc'
 
-export default function AssetsPage() {
+export default function FilesPage() {
   const router = useRouter()
   const { user } = useAuth()
   const canManage = canManageContent(user)
-  const [assets, setAssets] = useState<StoredFile[]>([])
+  const [files, setFiles] = useState<StoredFile[]>([])
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [sortBy, setSortBy] = useState<SortKey>('created')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
@@ -54,7 +54,7 @@ export default function AssetsPage() {
 
   useEffect(() => {
     fetchFiles()
-      .then(setAssets)
+      .then(setFiles)
       .catch((e) => {
         if ((e as Error).message.includes('Not authenticated')) {
           router.push('/login')
@@ -92,7 +92,7 @@ export default function AssetsPage() {
     setUploadError(null)
     try {
       const uploaded = await uploadFile({ file, category: uploadCategory })
-      setAssets((prev) => [uploaded, ...prev])
+      setFiles((prev) => [uploaded, ...prev])
       setShowUpload(false)
       setUploadCategory('')
     } catch (err) {
@@ -102,7 +102,7 @@ export default function AssetsPage() {
     }
   }
 
-  const sorted = [...assets].sort((a, b) => {
+  const sorted = [...files].sort((a, b) => {
     let cmp = 0
     if (sortBy === 'title') {
       cmp = a.title.localeCompare(b.title)
@@ -147,14 +147,14 @@ export default function AssetsPage() {
       {/* Toolbar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold">Assets</h1>
+          <h1 className="text-2xl font-bold">Files</h1>
           {canManage && (
             <Button
               size="sm"
               onClick={() => { setShowUpload(!showUpload); setUploadError(null) }}
             >
               <Upload size={16} className="mr-1" />
-              Upload asset
+              Upload file
             </Button>
           )}
         </div>
