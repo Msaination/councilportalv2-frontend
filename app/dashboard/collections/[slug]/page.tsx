@@ -55,7 +55,7 @@ export default function CollectionPage() {
     const fileCount = category.files?.length ?? 0
     const childCount = category.children?.length ?? 0
     const extras = fileCount || childCount
-      ? ` This also removes ${fileCount} resource(s) and ${childCount} subcategory(s).`
+      ? ` ${fileCount} file(s) will move to Root Files and ${childCount} subcategory(s) will be removed.`
       : ''
     if (!window.confirm(`Delete "${category.title}"?${extras}`)) return
     setBusy(true)

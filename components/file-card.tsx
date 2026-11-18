@@ -61,6 +61,8 @@ export function FileCard({ file }: Props) {
           <span className="uppercase">{kind}</span>
           <span>•</span>
           <span>{formatFileSize(file.filesize)}</span>
+          <span>•</span>
+          <span className="truncate">{file.category?.title ?? 'Root Files'}</span>
         </div>
 
         {file.rating_count > 0 && (

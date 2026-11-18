@@ -83,7 +83,7 @@ export default function FilesPage() {
   const handlePickFile = (e: ChangeEvent<HTMLInputElement>) => {
     const picked = e.target.files?.[0]
     e.target.value = '' // allow re-selecting the same file
-    if (!picked || !uploadCategory || uploading) return
+    if (!picked || uploading) return
     void doUpload(picked)
   }
 
@@ -217,7 +217,7 @@ export default function FilesPage() {
             <div className="flex flex-wrap items-end gap-3">
               <div className="space-y-1">
                 <label htmlFor="upload-category" className="text-sm font-medium">
-                  Resource category
+                  File category (optional)
                 </label>
                 <select
                   id="upload-category"
@@ -225,7 +225,7 @@ export default function FilesPage() {
                   value={uploadCategory}
                   onChange={(e) => setUploadCategory(e.target.value)}
                 >
-                  <option value="">Choose a resource category…</option>
+                  <option value="">— None (root Files) —</option>
                   {flattenCategories(categories).map((cat) => (
                     <option key={cat.slug} value={cat.slug}>
                       {cat.label}
@@ -241,7 +241,7 @@ export default function FilesPage() {
               />
               <Button
                 size="sm"
-                disabled={!uploadCategory || uploading}
+                disabled={uploading}
                 onClick={() => fileInputRef.current?.click()}
               >
                 {uploading ? 'Uploading…' : 'Choose file'}

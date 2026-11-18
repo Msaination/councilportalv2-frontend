@@ -355,16 +355,17 @@ export async function downloadFile(id: number): Promise<{ url?: string }> {
 
 export interface UploadInput {
   file: File
-  category: string
+  /** Optional file category. Omit to file it in the root Files area. */
+  category?: string
   title?: string
   description?: string
 }
 
-/** Upload a file into a category. Requires admin/staff on the backend. */
+/** Upload a file, optionally into a category. Requires admin/staff. */
 export async function uploadFile(input: UploadInput): Promise<StoredFile> {
   const form = new FormData()
   form.append('file', input.file)
-  form.append('category', input.category)
+  if (input.category) form.append('category', input.category)
   if (input.title) form.append('title', input.title)
   if (input.description) form.append('description', input.description)
   return apiFetch<StoredFile>('/api/files/upload/', {
