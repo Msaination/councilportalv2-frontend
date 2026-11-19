@@ -92,7 +92,7 @@ export default function CollectionsPage() {
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold">Files</h1>
+        <h1 className="text-2xl font-bold">Resources</h1>
         <div className="flex items-center gap-2">
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
