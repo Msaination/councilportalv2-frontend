@@ -11,7 +11,6 @@ import {
   LayoutDashboard,
   CalendarDays,
   Folder,
-  FileImage,
   Inbox,
   Share2,
   BarChart3,
@@ -42,7 +41,6 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
   { label: 'Calendar', icon: CalendarDays, href: '/dashboard/calendar' },
-  { label: 'Files', icon: FileImage, href: '/dashboard/assets' },
   { label: 'Resources', icon: Folder, href: '/dashboard/collections' },
   // Ordinary member access (§6.5) — every ward councillor sees their own.
   { label: 'My Complaints', icon: Inbox, href: '/dashboard/complaints' },
