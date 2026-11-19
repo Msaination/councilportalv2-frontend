@@ -4,7 +4,7 @@
 
 'use client'
 
-import { useEffect, useRef, useState, type ChangeEvent } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   fetchFiles, fetchRootCategories, uploadFile, canManageContent,
@@ -12,6 +12,7 @@ import {
 } from '@/lib/api'
 import { useAuth } from '@/components/auth-provider'
 import { FileCard } from '@/components/file-card'
+import { FileDropzone } from '@/components/file-dropzone'
 import {
   LayoutGrid,
   List,
@@ -49,8 +50,8 @@ export default function FilesPage() {
   const [showUpload, setShowUpload] = useState(false)
   const [uploadCategory, setUploadCategory] = useState('')
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState({ done: 0, total: 0 })
   const [uploadError, setUploadError] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     fetchFiles()
@@ -80,26 +81,38 @@ export default function FilesPage() {
       ...flattenCategories(cat.children || [], depth + 1),
     ])
 
-  const handlePickFile = (e: ChangeEvent<HTMLInputElement>) => {
-    const picked = e.target.files?.[0]
-    e.target.value = '' // allow re-selecting the same file
-    if (!picked || uploading) return
-    void doUpload(picked)
-  }
-
-  const doUpload = async (file: File) => {
+  /** Upload every dropped/selected file, reporting per-file failures. */
+  const handleFiles = async (picked: File[]) => {
+    if (uploading || picked.length === 0) return
     setUploading(true)
     setUploadError(null)
-    try {
-      const uploaded = await uploadFile({ file, category: uploadCategory })
-      setFiles((prev) => [uploaded, ...prev])
-      setShowUpload(false)
-      setUploadCategory('')
-    } catch (err) {
-      setUploadError((err as Error).message)
-    } finally {
-      setUploading(false)
+    setUploadProgress({ done: 0, total: picked.length })
+
+    const uploaded: StoredFile[] = []
+    const failed: string[] = []
+
+    for (const [index, file] of picked.entries()) {
+      try {
+        uploaded.push(
+          await uploadFile({ file, category: uploadCategory || undefined }),
+        )
+      } catch (err) {
+        failed.push(`${file.name}: ${(err as Error).message}`)
+      } finally {
+        setUploadProgress({ done: index + 1, total: picked.length })
+      }
     }
+
+    if (uploaded.length > 0) {
+      setFiles((prev) => [...uploaded, ...prev])
+      setShowUpload(false)
+    }
+    if (failed.length > 0) {
+      setUploadError(
+        `${failed.length} file(s) failed — ${failed.join('; ')}`,
+      )
+    }
+    setUploading(false)
   }
 
   const sorted = [...files].sort((a, b) => {
@@ -214,46 +227,51 @@ export default function FilesPage() {
       {canManage && showUpload && (
         <Card>
           <CardContent className="p-4 space-y-3">
-            <div className="flex flex-wrap items-end gap-3">
-              <div className="space-y-1">
-                <label htmlFor="upload-category" className="text-sm font-medium">
-                  File category (optional)
-                </label>
-                <select
-                  id="upload-category"
-                  className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-                  value={uploadCategory}
-                  onChange={(e) => setUploadCategory(e.target.value)}
-                >
-                  <option value="">— None (root Files) —</option>
-                  {flattenCategories(categories).map((cat) => (
-                    <option key={cat.slug} value={cat.slug}>
-                      {cat.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                className="hidden"
-                onChange={(e) => handlePickFile(e)}
-              />
-              <Button
-                size="sm"
+            <div className="space-y-1">
+              <label htmlFor="upload-category" className="text-sm font-medium">
+                File category (optional)
+              </label>
+              <select
+                id="upload-category"
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                value={uploadCategory}
+                onChange={(e) => setUploadCategory(e.target.value)}
                 disabled={uploading}
-                onClick={() => fileInputRef.current?.click()}
               >
-                {uploading ? 'Uploading…' : 'Choose file'}
-              </Button>
+                <option value="">— None (root Files) —</option>
+                {flattenCategories(categories).map((cat) => (
+                  <option key={cat.slug} value={cat.slug}>
+                    {cat.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <FileDropzone
+              onFiles={(files) => void handleFiles(files)}
+              onRejected={setUploadError}
+              busy={uploading}
+              hint={uploadCategory
+                ? `Files are added to the selected category`
+                : 'Files are added to the root Files area'}
+            />
+
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs text-muted-foreground">
+                {uploading && uploadProgress.total > 0
+                  ? `Uploading ${uploadProgress.done}/${uploadProgress.total}…`
+                  : 'Choose a category above, then drop files onto the area.'}
+              </p>
               <Button
                 size="sm"
                 variant="outline"
+                disabled={uploading}
                 onClick={() => { setShowUpload(false); setUploadError(null) }}
               >
-                Cancel
+                Done
               </Button>
             </div>
+
             {uploadError && (
               <p className="text-sm text-destructive">{uploadError}</p>
             )}

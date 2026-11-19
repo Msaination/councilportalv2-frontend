@@ -34,6 +34,23 @@ export function getPreviewKind(filename: string): PreviewKind {
   return ext && ext in EXT_MAP ? EXT_MAP[ext] : 'download'
 }
 
+/** Lower-cased extension without the dot, or '' when there is none. */
+export function fileExtension(filename: string): string {
+  const dot = filename.lastIndexOf('.')
+  return dot === -1 ? '' : filename.slice(dot + 1).toLowerCase()
+}
+
+/**
+ * Mirrors StoredFileViewSet.ALLOWED_EXTENSIONS in documents/views.py so the
+ * dropzone can reject unsupported files before uploading them.
+ */
+export const ALLOWED_UPLOAD_EXTENSIONS = new Set([
+  'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
+  'txt', 'csv', 'zip', 'rar', '7z',
+  'png', 'jpg', 'jpeg', 'gif', 'webp',
+  'mp3', 'wav', 'ogg', 'mp4', 'webm',
+])
+
 /** Icon name for a given filename (for fallback display). */
 export function getFileIcon(filename: string): string {
   const kind = getPreviewKind(filename)

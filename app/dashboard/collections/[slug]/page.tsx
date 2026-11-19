@@ -5,7 +5,7 @@
 
 'use client'
 
-import { useEffect, useRef, useState, type ChangeEvent } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   fetchCategory, uploadFile, deleteCategory, createCategory,
@@ -13,7 +13,8 @@ import {
 } from '@/lib/api'
 import { useAuth } from '@/components/auth-provider'
 import { FileCard } from '@/components/file-card'
-import { ArrowLeft, FolderOpen, FolderPlus, Upload, Trash2 } from 'lucide-react'
+import { FileDropzone } from '@/components/file-dropzone'
+import { ArrowLeft, FolderOpen, FolderPlus, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -29,30 +30,46 @@ export default function CollectionPage() {
   const [error, setError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState({ done: 0, total: 0 })
   const [showSubfolderForm, setShowSubfolderForm] = useState(false)
   const [subfolderTitle, setSubfolderTitle] = useState('')
   const [creatingSubfolder, setCreatingSubfolder] = useState(false)
   const [subfolderError, setSubfolderError] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const { user } = useAuth()
   const canManage = canManageContent(user)
 
-  const handleUpload = async (e: ChangeEvent<HTMLInputElement>) => {
-    const picked = e.target.files?.[0]
-    e.target.value = '' // allow re-selecting the same file
-    if (!picked || !category || busy) return
-    setBusy(true)
+  /** Upload every dropped/selected file, reporting per-file failures. */
+  const handleFiles = async (picked: File[]) => {
+    if (!category || uploading || picked.length === 0) return
+    setUploading(true)
     setActionError(null)
-    try {
-      const uploaded = await uploadFile({ file: picked, category: category.slug })
-      setCategory((prev) =>
-        prev ? { ...prev, files: [uploaded, ...(prev.files || [])] } : prev)
-    } catch (err) {
-      setActionError((err as Error).message)
-    } finally {
-      setBusy(false)
+    setUploadProgress({ done: 0, total: picked.length })
+
+    const uploaded: StoredFile[] = []
+    const failed: string[] = []
+
+    for (const [index, file] of picked.entries()) {
+      try {
+        uploaded.push(await uploadFile({ file, category: category.slug }))
+      } catch (err) {
+        failed.push(`${file.name}: ${(err as Error).message}`)
+      } finally {
+        setUploadProgress({ done: index + 1, total: picked.length })
+      }
     }
+
+    if (uploaded.length > 0) {
+      setCategory((prev) =>
+        prev ? { ...prev, files: [...uploaded, ...(prev.files || [])] } : prev)
+    }
+    if (failed.length > 0) {
+      setActionError(
+        `${failed.length} file(s) failed — ${failed.join('; ')}`,
+      )
+    }
+    setUploading(false)
   }
 
   const handleCreateSubfolder = async () => {
@@ -165,16 +182,10 @@ export default function CollectionPage() {
         </div>
         {canManage && (
           <div className="flex items-center gap-2 shrink-0">
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              onChange={(e) => void handleUpload(e)}
-            />
             <Button
               size="sm"
               variant="outline"
-              disabled={busy}
+              disabled={busy || uploading}
               onClick={() => {
                 setShowSubfolderForm((open) => !open)
                 setSubfolderError(null)
@@ -185,16 +196,8 @@ export default function CollectionPage() {
             </Button>
             <Button
               size="sm"
-              disabled={busy}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Upload size={16} className="mr-1" />
-              {busy ? 'Working…' : 'Upload file'}
-            </Button>
-            <Button
-              size="sm"
               variant="destructive"
-              disabled={busy}
+              disabled={busy || uploading}
               onClick={() => void handleDelete()}
             >
               <Trash2 size={16} className="mr-1" />
@@ -207,6 +210,22 @@ export default function CollectionPage() {
       {actionError && (
         <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-lg">
           {actionError}
+        </div>
+      )}
+
+      {canManage && (
+        <div className="space-y-1">
+          <FileDropzone
+            onFiles={(files) => void handleFiles(files)}
+            onRejected={setActionError}
+            busy={uploading}
+            hint={`Files are added to "${category.title}"`}
+          />
+          {uploading && uploadProgress.total > 0 && (
+            <p className="text-xs text-muted-foreground">
+              Uploading {uploadProgress.done}/{uploadProgress.total}…
+            </p>
+          )}
         </div>
       )}
 
