@@ -10,15 +10,25 @@ import Link from 'next/link'
 import type { StoredFile } from '@/lib/api'
 import { downloadFile, downloadFileBlob } from '@/lib/api'
 import { getPreviewKind, formatFileSize } from '@/lib/file-types'
-import { Download, Star } from 'lucide-react'
+import { Download, Star, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 interface Props {
   file: StoredFile
+  /** Show a selection checkbox for bulk actions. */
+  selectable?: boolean
+  selected?: boolean
+  onSelectChange?: (selected: boolean) => void
+  /** Show a per-file delete button when the caller allows it. */
+  onDelete?: () => void
+  deleting?: boolean
 }
 
-export function FileCard({ file }: Props) {
+export function FileCard({
+  file, selectable = false, selected = false, onSelectChange,
+  onDelete, deleting = false,
+}: Props) {
   const kind = getPreviewKind(file.local_file || file.external_url)
   const [downloading, setDownloading] = useState(false)
 
@@ -50,11 +60,34 @@ export function FileCard({ file }: Props) {
   return (
     <Card className="group">
       <CardHeader>
-        <CardTitle>
-          <Link href={`/files/${file.id}`} className="hover:text-primary transition-colors">
-            {file.title}
-          </Link>
-        </CardTitle>
+        <div className="flex items-start gap-2">
+          {selectable && (
+            <input
+              type="checkbox"
+              checked={selected}
+              onChange={(event) => onSelectChange?.(event.target.checked)}
+              aria-label={`Select ${file.title}`}
+              className="mt-1 h-4 w-4 accent-primary"
+            />
+          )}
+          <CardTitle className="flex-1">
+            <Link href={`/files/${file.id}`} className="hover:text-primary transition-colors">
+              {file.title}
+            </Link>
+          </CardTitle>
+          {onDelete && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-destructive"
+              onClick={onDelete}
+              disabled={deleting}
+              aria-label={`Delete ${file.title}`}
+            >
+              <Trash2 size={15} />
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">

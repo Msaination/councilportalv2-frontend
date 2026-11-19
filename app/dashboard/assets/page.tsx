@@ -7,8 +7,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  fetchFiles, fetchRootCategories, uploadFile, canManageContent,
-  type Category, type StoredFile,
+  fetchFiles, fetchRootCategories, uploadFile, deleteFile, deleteFiles,
+  canManageContent, type Category, type StoredFile,
 } from '@/lib/api'
 import { useAuth } from '@/components/auth-provider'
 import { FileCard } from '@/components/file-card'
@@ -19,6 +19,7 @@ import {
   Filter,
   SortAsc,
   SortDesc,
+  Trash2,
   Upload,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -52,6 +53,8 @@ export default function FilesPage() {
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState({ done: 0, total: 0 })
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     fetchFiles()
@@ -136,6 +139,51 @@ export default function FilesPage() {
     }
   }
 
+  const allSelected = sorted.length > 0 &&
+    sorted.every((file) => selectedIds.has(file.id))
+
+  const toggleSelected = (id: number, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (checked) next.add(id)
+      else next.delete(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = (checked: boolean) => {
+    setSelectedIds(
+      checked ? new Set(sorted.map((file) => file.id)) : new Set(),
+    )
+  }
+
+  /** Delete one or many files after confirmation, then drop them locally. */
+  const removeFiles = async (ids: number[]) => {
+    if (!canManage || deleting || ids.length === 0) return
+    const label = ids.length === 1 ? 'this file' : `these ${ids.length} files`
+    if (!window.confirm(`Delete ${label}? This cannot be undone.`)) return
+
+    setDeleting(true)
+    setUploadError(null)
+    try {
+      if (ids.length === 1) {
+        await deleteFile(ids[0])
+      } else {
+        await deleteFiles(ids)
+      }
+      setFiles((prev) => prev.filter((file) => !ids.includes(file.id)))
+      setSelectedIds((prev) => {
+        const next = new Set(prev)
+        for (const id of ids) next.delete(id)
+        return next
+      })
+    } catch (err) {
+      setUploadError((err as Error).message)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="p-6">
@@ -161,6 +209,28 @@ export default function FilesPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold">Files</h1>
+          {canManage && sorted.length > 0 && (
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-primary"
+                checked={allSelected}
+                onChange={(e) => toggleSelectAll(e.target.checked)}
+              />
+              Select all
+            </label>
+          )}
+          {canManage && selectedIds.size > 0 && (
+            <Button
+              size="sm"
+              variant="destructive"
+              disabled={deleting}
+              onClick={() => void removeFiles([...selectedIds])}
+            >
+              <Trash2 size={16} className="mr-1" />
+              {deleting ? 'Deleting…' : `Delete (${selectedIds.size})`}
+            </Button>
+          )}
           {canManage && (
             <Button
               size="sm"
@@ -283,7 +353,15 @@ export default function FilesPage() {
       {viewMode === 'grid' ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {sorted.map((file) => (
-            <FileCard key={file.id} file={file} />
+            <FileCard
+              key={file.id}
+              file={file}
+              selectable={canManage}
+              selected={selectedIds.has(file.id)}
+              onSelectChange={(checked) => toggleSelected(file.id, checked)}
+              onDelete={canManage ? () => void removeFiles([file.id]) : undefined}
+              deleting={deleting}
+            />
           ))}
         </div>
       ) : (
@@ -292,16 +370,39 @@ export default function FilesPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b text-left text-xs font-medium text-muted-foreground uppercase">
+                  {canManage && (
+                    <th className="px-4 py-3 w-10">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 accent-primary"
+                        checked={allSelected}
+                        onChange={(e) => toggleSelectAll(e.target.checked)}
+                        aria-label="Select all files"
+                      />
+                    </th>
+                  )}
                   <th className="px-4 py-3">Name</th>
                   <th className="px-4 py-3">Type</th>
                   <th className="px-4 py-3">Size</th>
                   <th className="px-4 py-3">Modified</th>
                   <th className="px-4 py-3 text-right">Downloads</th>
+                  {canManage && <th className="px-4 py-3 w-10" />}
                 </tr>
               </thead>
               <tbody>
                 {sorted.map((file) => (
                   <tr key={file.id} className="border-b last:border-0">
+                    {canManage && (
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 accent-primary"
+                          checked={selectedIds.has(file.id)}
+                          onChange={(e) => toggleSelected(file.id, e.target.checked)}
+                          aria-label={`Select ${file.title}`}
+                        />
+                      </td>
+                    )}
                     <td className="px-4 py-3">
                       <a
                         href={`/dashboard/assets/${file.id}`}
@@ -324,6 +425,20 @@ export default function FilesPage() {
                     <td className="px-4 py-3 text-right text-sm">
                       {file.download_count}
                     </td>
+                    {canManage && (
+                      <td className="px-4 py-3 text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                          onClick={() => void removeFiles([file.id])}
+                          disabled={deleting}
+                          aria-label={`Delete ${file.title}`}
+                        >
+                          <Trash2 size={15} />
+                        </Button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

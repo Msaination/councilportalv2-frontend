@@ -379,6 +379,14 @@ export async function deleteFile(id: number): Promise<void> {
   await apiFetch(`/api/files/${id}/`, { method: 'DELETE' })
 }
 
+/** Delete several files in one request. Requires admin/staff. */
+export async function deleteFiles(ids: number[]): Promise<{ deleted: number }> {
+  return apiFetch<{ deleted: number }>('/api/files/bulk-delete/', {
+    method: 'POST',
+    body: JSON.stringify({ ids }),
+  })
+}
+
 export interface CreateCollectionInput {
   title: string
   parent?: string
