@@ -29,16 +29,16 @@ export default function CollectionPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState({ done: 0, total: 0 })
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [showUpload, setShowUpload] = useState(false)
   const [showSubfolderForm, setShowSubfolderForm] = useState(false)
   const [subfolderTitle, setSubfolderTitle] = useState('')
   const [creatingSubfolder, setCreatingSubfolder] = useState(false)
   const [subfolderError, setSubfolderError] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [deleting, setDeleting] = useState(false)
-  const [uploading, setUploading] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState({ done: 0, total: 0 })
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [showUpload, setShowUpload] = useState(false)
   const { user } = useAuth()
   const canManage = canManageContent(user)
 
@@ -114,8 +114,6 @@ export default function CollectionPage() {
 
   /** Delete one or many files after confirmation, then drop them locally. */
   const removeFiles = async (ids: number[]) => {
-    // Ensure delete functions are correctly imported and available.
-    // Removed dynamic import for deleteFile and deleteFiles
     if (!canManage || deleting || ids.length === 0 || !category) return
     const label = ids.length === 1 ? 'this file' : `these ${ids.length} files`
     if (!window.confirm(`Delete ${label}? This cannot be undone.`)) return
@@ -128,7 +126,6 @@ export default function CollectionPage() {
       } else {
         await deleteFiles(ids)
       }
-      // Update category state to filter out deleted files
       setCategory((prev) => {
         if (!prev) return null;
         return {
@@ -207,7 +204,7 @@ export default function CollectionPage() {
   return (
     <div className="p-6 space-y-6">
       {/* Back */}
-        <Link href="/dashboard/files" className="flex items-center text-sm text-muted-foreground hover:text-foreground">
+      <Link href="/dashboard#resources" className="flex items-center text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft size={16} className="mr-1" />
         Back to files
       </Link>
@@ -237,7 +234,7 @@ export default function CollectionPage() {
             <Button
               size="sm"
               variant="destructive"
-              disabled={uploading}
+              disabled={selectedIds.size === 0 || deleting || uploading}
               onClick={() => void removeFiles([...selectedIds])}
               aria-label={`Delete ${selectedIds.size} selected files`}
             >
@@ -322,7 +319,7 @@ export default function CollectionPage() {
                   <span className="font-medium">{child.title}</span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {child.file_count} files
+                  {child.total_file_count} files
                 </p>
               </Link>
             ))}
@@ -332,7 +329,9 @@ export default function CollectionPage() {
 
       {/* Files */}
       <section>
-        <h2 className="text-lg font-semibold mb-3">Files ({category.files?.length || 0})</h2>
+        <h2 className="text-lg font-semibold mb-3">
+          Files ({category.total_file_count || 0})
+        </h2>
         {category.files && category.files.length > 0 ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {category.files.map((file) => (

@@ -194,6 +194,7 @@ export interface Category {
   ordering: number
   children: Category[]
   file_count: number
+  total_file_count: number
   can_view: boolean
 }
 

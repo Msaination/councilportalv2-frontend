@@ -35,13 +35,7 @@ export default function PortalPage() {
     <div className="max-w-4xl mx-auto p-6">
       <header className="mb-8 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Image
-            src="/emalahleni-logo.png"
-            alt="Emalahleni"
-            className="h-10 w-10"
-            width={40}
-            height={40}
-          />
+          <Image src="/emalahleni-logo.png" alt="Emalahleni" className="h-10 w-10" width={40} height={40} />
           <div>
             <h1 className="text-3xl font-bold text-foreground">
               Emalahleni Council Portal (ECoP)

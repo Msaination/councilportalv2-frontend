@@ -59,6 +59,15 @@ export default function DashboardPage() {
     load()
   }, [router])
 
+  useEffect(() => {
+    if (window.location.hash === '#resources') {
+      const element = document.getElementById('resources')
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' })
+      }
+    }
+  }, [])
+
   if (loading) {
     return (
       <div className="p-6 space-y-6">
@@ -148,38 +157,6 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Top files */}
-      {canViewStats && (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold">
-            Most Downloaded Files
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {stats?.top_files && stats.top_files.length > 0 ? (
-            <div className="space-y-3">
-              {stats.top_files.map((f, i) => (
-                <div key={f.id} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Badge variant="outline" className="w-6 h-6 rounded-full justify-center">
-                      {i + 1}
-                    </Badge>
-                    <span className="text-sm font-medium">{f.title}</span>
-                  </div>
-                  <Badge variant="secondary">
-                    {f.download_count} downloads
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">No downloads yet.</p>
-          )}
-        </CardContent>
-      </Card>
-      )}
-
       {/* Upcoming meetings */}
       <Card>
         <CardHeader>
@@ -220,9 +197,9 @@ export default function DashboardPage() {
           </Link>
         </CardContent>
       </Card>
-
+      
       {/* Resources */}
-      <Card>
+      <Card id="resources">
         <CardHeader>
           <CardTitle className="text-lg font-semibold">Resources</CardTitle>
         </CardHeader>
@@ -236,13 +213,48 @@ export default function DashboardPage() {
               >
                 <h3 className="font-medium">{cat.title}</h3>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {cat.file_count} files
+                  {cat.total_file_count} files
                 </p>
               </Link>
             ))}
           </div>
         </CardContent>
       </Card>
+
+      {/* Top files */}
+      {canViewStats && (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">
+            Most Downloaded Files
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {stats?.top_files && stats.top_files.length > 0 ? (
+            <div className="space-y-3">
+              {stats.top_files.map((f, i) => (
+                <div key={f.id} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Badge variant="outline" className="w-6 h-6 rounded-full justify-center">
+                      {i + 1}
+                    </Badge>
+                    <span className="text-sm font-medium">{f.title}</span>
+                  </div>
+                  <Badge variant="secondary">
+                    {f.download_count} downloads
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No downloads yet.</p>
+          )}
+        </CardContent>
+      </Card>
+      )}
+
+
+
     </div>
   )
 }
