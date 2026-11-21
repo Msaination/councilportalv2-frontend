@@ -23,6 +23,7 @@ import { KeyRound, Save, User } from 'lucide-react'
 const MAX_BIO_LENGTH = 500
 
 export default function ProfilePage() {
+  const router = useRouter()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
@@ -43,7 +44,6 @@ export default function ProfilePage() {
   const [changingPassword, setChangingPassword] = useState(false)
 
   const { reload } = useAuth()
-  const router = useRouter()
   const searchParams = useSearchParams()
   const forceChange = searchParams.get('force') === '1'
 
@@ -121,7 +121,7 @@ export default function ProfilePage() {
       setNewPassword('')
       setConfirmPassword('')
       if (forceChange) {
-        window.location.assign('/dashboard')
+        router.push('/dashboard')
         return
       }
       await reload()
@@ -352,6 +352,14 @@ export default function ProfilePage() {
           </form>
         </CardContent>
       </Card>
+
+      <Button
+        variant="secondary"
+        size="sm"
+        onClick={() => router.push('/logout')}
+      >
+        Log out
+      </Button>
     </div>
   )
 }

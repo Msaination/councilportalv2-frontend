@@ -216,6 +216,7 @@ export default function FilesPage() {
                 className="h-4 w-4 accent-primary"
                 checked={allSelected}
                 onChange={(e) => toggleSelectAll(e.target.checked)}
+                aria-label="Select all files"
               />
               Select all
             </label>
@@ -226,20 +227,20 @@ export default function FilesPage() {
               variant="destructive"
               disabled={deleting}
               onClick={() => void removeFiles([...selectedIds])}
+              aria-label={`Delete ${selectedIds.size} selected files`}
             >
               <Trash2 size={16} className="mr-1" />
               {deleting ? 'Deleting…' : `Delete (${selectedIds.size})`}
             </Button>
           )}
-          {canManage && (
-            <Button
-              size="sm"
-              onClick={() => { setShowUpload(!showUpload); setUploadError(null) }}
-            >
-              <Upload size={16} className="mr-1" />
-              Upload file
-            </Button>
-          )}
+          <Button
+            size="sm"
+            onClick={() => { setShowUpload(!showUpload); setUploadError(null) }}
+            disabled={uploading}
+          >
+            <Upload size={16} className="mr-1" />
+            {uploading ? 'Uploading…' : 'Choose file'}
+          </Button>
         </div>
         <div className="flex items-center gap-2">
           {/* Sort */}
@@ -393,7 +394,7 @@ export default function FilesPage() {
                 {sorted.map((file) => (
                   <tr key={file.id} className="border-b last:border-0">
                     {canManage && (
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 w-10">
                         <input
                           type="checkbox"
                           className="h-4 w-4 accent-primary"
@@ -403,14 +404,7 @@ export default function FilesPage() {
                         />
                       </td>
                     )}
-                    <td className="px-4 py-3">
-                      <a
-                        href={`/dashboard/assets/${file.id}`}
-                        className="font-medium text-sm hover:text-primary"
-                      >
-                        {file.title}
-                      </a>
-                    </td>
+                    <td className="px-4 py-3 pr-4 truncate max-w-xs">{file.title}</td>
                     <td className="px-4 py-3">
                       <Badge variant="secondary" className="text-xs">
                         {file.preview_kind}
@@ -420,7 +414,7 @@ export default function FilesPage() {
                       {file.filesize ? `${Math.round(file.filesize / 1024)} KB` : '—'}
                     </td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">
-                      {new Date(file.modified).toLocaleDateString()}
+                      {new Date(file.modified).toLocaleString()}
                     </td>
                     <td className="px-4 py-3 text-right text-sm">
                       {file.download_count}

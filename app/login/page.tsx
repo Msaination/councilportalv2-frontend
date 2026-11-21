@@ -130,7 +130,7 @@ export default function LoginPage() {
               type="button"
               variant="outline"
               className="w-full"
-              onClick={() => window.location.assign(OIDC_LOGIN_URL)}
+              onClick={() => router.push(OIDC_LOGIN_URL)}
             >
               Continue with Council SSO
             </Button>

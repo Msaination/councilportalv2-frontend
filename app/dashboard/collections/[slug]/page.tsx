@@ -6,9 +6,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import {
-  fetchCategory, uploadFile, deleteCategory, createCategory,
+  fetchCategory, uploadFile, createCategory, deleteFile, deleteFiles,
   canManageContent, type Category, type StoredFile,
 } from '@/lib/api'
 import { useAuth } from '@/components/auth-provider'
@@ -29,20 +29,22 @@ export default function CollectionPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
-  const [uploading, setUploading] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState({ done: 0, total: 0 })
   const [showSubfolderForm, setShowSubfolderForm] = useState(false)
   const [subfolderTitle, setSubfolderTitle] = useState('')
   const [creatingSubfolder, setCreatingSubfolder] = useState(false)
   const [subfolderError, setSubfolderError] = useState<string | null>(null)
-  const router = useRouter()
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [deleting, setDeleting] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState({ done: 0, total: 0 })
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [showUpload, setShowUpload] = useState(false)
   const { user } = useAuth()
   const canManage = canManageContent(user)
 
   /** Upload every dropped/selected file, reporting per-file failures. */
   const handleFiles = async (picked: File[]) => {
-    if (!category || uploading || picked.length === 0) return
+    if (uploading || picked.length === 0) return
     setUploading(true)
     setActionError(null)
     setUploadProgress({ done: 0, total: picked.length })
@@ -52,7 +54,10 @@ export default function CollectionPage() {
 
     for (const [index, file] of picked.entries()) {
       try {
-        uploaded.push(await uploadFile({ file, category: category.slug }))
+        // Assuming StoredFile.name should map to file.name, or use file.title if name is not available on StoredFile
+        uploaded.push(
+          await uploadFile({ file, category: category?.slug || undefined }),
+        )
       } catch (err) {
         failed.push(`${file.name}: ${(err as Error).message}`)
       } finally {
@@ -61,8 +66,15 @@ export default function CollectionPage() {
     }
 
     if (uploaded.length > 0) {
-      setCategory((prev) =>
-        prev ? { ...prev, files: [...uploaded, ...(prev.files || [])] } : prev)
+      // Update category state with new files
+      setCategory((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          files: [...uploaded, ...(prev.files || [])],
+        };
+      });
+      setShowUpload(false)
     }
     if (failed.length > 0) {
       setActionError(
@@ -74,6 +86,7 @@ export default function CollectionPage() {
 
   const handleCreateSubfolder = async () => {
     const title = subfolderTitle.trim()
+    // Safely access category properties
     if (!title || !category || creatingSubfolder) return
     setCreatingSubfolder(true)
     setSubfolderError(null)
@@ -90,22 +103,48 @@ export default function CollectionPage() {
     }
   }
 
-  const handleDelete = async () => {
-    if (!category || busy) return
-    const fileCount = category.files?.length ?? 0
-    const childCount = category.children?.length ?? 0
-    const extras = fileCount || childCount
-      ? ` ${fileCount} file(s) will move to Root Files and ${childCount} subcategory(s) will be removed.`
-      : ''
-    if (!window.confirm(`Delete "${category.title}"?${extras}`)) return
-    setBusy(true)
+  const toggleSelected = (id: number, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (checked) next.add(id)
+      else next.delete(id)
+      return next
+    })
+  }
+
+  /** Delete one or many files after confirmation, then drop them locally. */
+  const removeFiles = async (ids: number[]) => {
+    // Ensure delete functions are correctly imported and available.
+    // Removed dynamic import for deleteFile and deleteFiles
+    if (!canManage || deleting || ids.length === 0 || !category) return
+    const label = ids.length === 1 ? 'this file' : `these ${ids.length} files`
+    if (!window.confirm(`Delete ${label}? This cannot be undone.`)) return
+
+    setDeleting(true)
     setActionError(null)
     try {
-      await deleteCategory(category.slug)
-      router.push('/dashboard/collections')
+      if (ids.length === 1) {
+        await deleteFile(ids[0])
+      } else {
+        await deleteFiles(ids)
+      }
+      // Update category state to filter out deleted files
+      setCategory((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          files: prev.files.filter((file) => !ids.includes(file.id)),
+        };
+      });
+      setSelectedIds((prev) => {
+        const next = new Set(prev)
+        for (const id of ids) next.delete(id)
+        return next
+      })
     } catch (err) {
       setActionError((err as Error).message)
-      setBusy(false)
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -155,6 +194,7 @@ export default function CollectionPage() {
     )
   }
 
+  // Safely render if category is null
   if (!category) {
     return (
       <div className="p-6 text-center py-12">
@@ -167,7 +207,7 @@ export default function CollectionPage() {
   return (
     <div className="p-6 space-y-6">
       {/* Back */}
-      <Link href="/dashboard/collections" className="flex items-center text-sm text-muted-foreground hover:text-foreground">
+        <Link href="/dashboard/files" className="flex items-center text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft size={16} className="mr-1" />
         Back to files
       </Link>
@@ -185,7 +225,7 @@ export default function CollectionPage() {
             <Button
               size="sm"
               variant="outline"
-              disabled={busy || uploading}
+              disabled={uploading || creatingSubfolder}
               onClick={() => {
                 setShowSubfolderForm((open) => !open)
                 setSubfolderError(null)
@@ -197,11 +237,12 @@ export default function CollectionPage() {
             <Button
               size="sm"
               variant="destructive"
-              disabled={busy || uploading}
-              onClick={() => void handleDelete()}
+              disabled={uploading}
+              onClick={() => void removeFiles([...selectedIds])}
+              aria-label={`Delete ${selectedIds.size} selected files`}
             >
               <Trash2 size={16} className="mr-1" />
-              Delete
+              {deleting ? 'Deleting…' : `Delete (${selectedIds.size})`}
             </Button>
           </div>
         )}
@@ -291,13 +332,19 @@ export default function CollectionPage() {
 
       {/* Files */}
       <section>
-        <h2 className="text-lg font-semibold mb-3">
-          Files ({category.files?.length || 0})
-        </h2>
+        <h2 className="text-lg font-semibold mb-3">Files ({category.files?.length || 0})</h2>
         {category.files && category.files.length > 0 ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {category.files.map((file) => (
-              <FileCard key={file.id} file={file} />
+            <FileCard
+            key={file.id}
+            file={file}
+            selectable={canManage}
+            selected={selectedIds.has(file.id)}
+            onSelectChange={(checked) => toggleSelected(file.id, checked)}
+            onDelete={canManage ? () => void removeFiles([file.id]) : undefined}
+            deleting={deleting}
+          />
             ))}
           </div>
         ) : (

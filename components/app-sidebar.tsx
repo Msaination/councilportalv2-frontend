@@ -6,6 +6,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
@@ -91,13 +92,13 @@ export function AppSidebar() {
       <div className="flex items-center justify-between p-3 border-b">
         {!collapsed && (
           <Link href="/dashboard" className="flex items-center gap-2 font-semibold text-foreground">
-            <img src="/emalahleni-logo.png" alt="ECoP — Emalahleni Council Portal" className="h-6 w-6" />
+            <Image src="/emalahleni-logo.png" alt="ECoP — Emalahleni Council Portal" className="h-6 w-6" width={24} height={24} />
             ECoP
           </Link>
         )}
         {collapsed && (
           <Link href="/dashboard" className="mx-auto block">
-            <img src="/emalahleni-logo.png" alt="ECoP — Emalahleni Council Portal" className="h-6 w-6" />
+            <Image src="/emalahleni-logo.png" alt="ECoP — Emalahleni Council Portal" className="h-6 w-6" width={24} height={24} />
           </Link>
         )}
         <Tooltip>

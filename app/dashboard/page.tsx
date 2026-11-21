@@ -10,12 +10,12 @@ import { fetchStatsSummary, type StatsSummary } from '@/lib/api'
 import { fetchRootCategories, checkJwtAuth, fetchMeetings, type Category, type Meeting } from '@/lib/api'
 import { isoDay } from '@/lib/meetings'
 import {
-  LayoutDashboard,
+
   FileImage,
   Download,
   Upload,
   TrendingUp,
-  Clock,
+
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'

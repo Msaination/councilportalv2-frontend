@@ -11,6 +11,7 @@
 import type { StoredFile } from '@/lib/api'
 import { getPreviewKind, formatFileSize } from '@/lib/file-types'
 import { Download, FileText } from 'lucide-react'
+import Image from 'next/image'
 
 interface Props {
   file: StoredFile
@@ -43,11 +44,12 @@ export function Preview({ file }: Props) {
 
     case 'image':
       return (
-        <div className="border rounded-lg overflow-hidden bg-muted/30">
-          <img
+        <div className="border rounded-lg overflow-hidden bg-muted/30 relative h-96">
+          <Image
             src={src}
             alt={file.title}
-            className="max-w-full h-auto mx-auto"
+            fill
+            style={{ objectFit: 'contain' }}
           />
         </div>
       )

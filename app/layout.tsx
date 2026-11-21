@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import Image from 'next/image'
 import "./globals.css";
 import { AuthProvider } from "@/components/auth-provider";
 
@@ -35,7 +36,13 @@ export default function RootLayout({
           <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <nav className="max-w-4xl mx-auto h-14 flex items-center px-6">
               <Link href="/" className="flex items-center gap-2 font-semibold text-foreground">
-                <img src="/emalahleni-logo.png" alt="ECoP — Emalahleni Council Portal" className="h-8 w-8" />
+                <Image
+                  src="/emalahleni-logo.png"
+                  alt="ECoP — Emalahleni Council Portal"
+                  className="h-8 w-8"
+                  width={32}
+                  height={32}
+                />
                 Emalahleni Council Portal (ECoP)
               </Link>
             </nav>

@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Download, FileText, Lock } from 'lucide-react'
 import { formatFileSize } from '@/lib/file-types'
+import Image from 'next/image'
 
 function SharedPreview({
   link,
@@ -41,8 +42,8 @@ function SharedPreview({
       )
     case 'image':
       return (
-        <div className="border rounded-lg overflow-hidden bg-muted/30">
-          <img src={src} alt={file.title} className="max-w-full h-auto mx-auto" />
+        <div className="border rounded-lg overflow-hidden bg-muted/30 relative h-96">
+          <Image src={src} alt={file.title} fill style={{ objectFit: 'contain' }} />
         </div>
       )
     case 'audio':

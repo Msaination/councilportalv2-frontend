@@ -482,12 +482,12 @@ export async function fetchUploadLogs(): Promise<UploadLog[]> {
 // ─── Complaints (CMS gateway, ward-filtered server-side) ────
 
 export interface Complaint {
-  id: string
+  id: number
   reference_number: string
   subject: string
   status: string
   priority: string | null
-  ward: string | null
+  ward: number | null
   area: string | null
   department: string | null
   issue_type: string | null

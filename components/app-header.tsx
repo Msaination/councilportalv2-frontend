@@ -19,9 +19,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useAuth } from '@/components/auth-provider'
+import { useRouter } from 'next/navigation'
 
 export function AppHeader() {
   const { user } = useAuth()
+  const router = useRouter()
 
   return (
     <header className="flex h-14 items-center gap-4 bg-brand px-4 text-brand-foreground lg:px-6">
@@ -93,7 +95,7 @@ export function AppHeader() {
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              onSelect={() => window.location.assign('/logout')}
+              onSelect={() => router.push('/logout')}
               className="text-destructive"
             >
               <LogOut size={16} className="mr-2" /> Log out

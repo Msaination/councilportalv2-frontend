@@ -9,6 +9,7 @@ import { fetchRootCategories, checkJwtAuth, type Category } from '@/lib/api'
 import { FolderTree, Search, LogIn } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import Image from 'next/image'
 
 export default function PortalPage() {
   const [categories, setCategories] = useState<Category[]>([])
@@ -28,13 +29,19 @@ export default function PortalPage() {
       .then(setCategories)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
-  }, [])
+  }, [router])
 
   return (
     <div className="max-w-4xl mx-auto p-6">
       <header className="mb-8 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <img src="/emalahleni-logo.png" alt="Emalahleni" className="h-10 w-10" />
+          <Image
+            src="/emalahleni-logo.png"
+            alt="Emalahleni"
+            className="h-10 w-10"
+            width={40}
+            height={40}
+          />
           <div>
             <h1 className="text-3xl font-bold text-foreground">
               Emalahleni Council Portal (ECoP)

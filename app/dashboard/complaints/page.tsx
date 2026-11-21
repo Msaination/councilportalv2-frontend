@@ -191,7 +191,19 @@ export default function ComplaintsPage() {
               </CardHeader>
               <CardContent className="pt-0">
                 <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                  {c.date_reported && <span>Reported {c.date_reported}</span>}
+                  {c.date_reported && (
+                    <span>
+                      Reported{' '}
+                      {new Date(c.date_reported).toLocaleString('default', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: 'numeric',
+                        hour12: true,
+                      })}
+                    </span>
+                  )}
                   {c.priority && <span>Priority: {c.priority}</span>}
                   {c.area && <span>Area: {c.area}</span>}
                   {c.received_channel && <span>Channel: {c.received_channel}</span>}
