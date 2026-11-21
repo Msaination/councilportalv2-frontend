@@ -450,7 +450,7 @@ export function CalendarApp() {
                         <Clock size={12} /> {meeting.team_name}
                       </span>
                     </div>
-                    {(meeting.file_title || meeting.category_title) && (
+                    {canUseTeams && (meeting.file_title || meeting.category_title) && (
                       <Link
                         href={meetingHref(meeting)}
                         className="text-xs text-primary hover:underline"

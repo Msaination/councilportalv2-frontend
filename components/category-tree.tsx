@@ -42,7 +42,7 @@ function CategoryNode({ category, depth }: { category: Category; depth: number }
         </span>
 
         <Link
-          href={`/categories/${category.slug}`}
+          href={`/dashboard/categories/${category.slug}`}
           className="flex-1 text-sm font-medium hover:text-primary transition-colors"
         >
           {category.title}

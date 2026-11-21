@@ -24,6 +24,12 @@ import {
   RefreshCw,
   AlertTriangle,
   Inbox as EmptyIcon,
+  ClipboardList,
+  Building,
+  Flag,
+  MessageSquare,
+  Tag,
+  Clock,
 } from 'lucide-react'
 
 /** CMS status lifecycle (§6.7) → badge variant. Live values: Received, New,
@@ -40,6 +46,38 @@ const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'outline' | 'dest
 
 function statusVariant(status: string) {
   return STATUS_VARIANT[status] ?? 'secondary'
+}
+
+const PRIORITY_VARIANT: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
+  Low: 'outline',
+  Medium: 'secondary',
+  High: 'destructive',
+  Urgent: 'destructive',
+}
+
+function priorityVariant(priority: string) {
+  return PRIORITY_VARIANT[priority] ?? 'secondary'
+}
+
+const AREA_VARIANT: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
+  'Ward 1': 'outline',
+  'Ward 2': 'outline',
+  'Ward 3': 'secondary',
+  'Ward 4': 'secondary',
+}
+
+function areaVariant(area: string) {
+  return AREA_VARIANT[area] ?? 'secondary'
+}
+
+const CHANNEL_VARIANT: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
+  'Call Centre': 'outline',
+  'Mobile App': 'secondary',
+  'Walk-in': 'default',
+}
+
+function channelVariant(channel: string) {
+  return CHANNEL_VARIANT[channel] ?? 'secondary'
 }
 
 export default function ComplaintsPage() {
@@ -173,18 +211,37 @@ export default function ComplaintsPage() {
       )}
 
       {complaints.length > 0 && (
-        <div className="grid gap-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           {complaints.map((c: Complaint) => (
             <Card key={c.id}>
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between gap-3">
-                  <div>
+                  <div className="min-w-0">
                     <CardTitle className="text-base">{c.subject}</CardTitle>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {c.reference_number}
-                      {c.department ? ` · ${c.department}` : ''}
-                      {c.issue_type ? ` · ${c.issue_type}` : ''}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2 mt-1">
+                      <Badge variant="outline" className="gap-1 pl-1 pr-2">
+                        <ClipboardList size={12} className="text-muted-foreground" />
+                        <span className="font-mono text-xs font-normal text-foreground">
+                          {c.reference_number}
+                        </span>
+                      </Badge>
+                      {c.department && (
+                        <Badge variant="secondary" className="gap-1 pl-1 pr-2">
+                          <Building size={12} className="text-muted-foreground" />
+                          <span className="text-xs font-normal text-foreground">
+                            {c.department}
+                          </span>
+                        </Badge>
+                      )}
+                      {c.issue_type && (
+                        <Badge variant="secondary" className="gap-1 pl-1 pr-2">
+                          <Tag size={12} className="text-muted-foreground" />
+                          <span className="text-xs font-normal text-foreground">
+                            {c.issue_type}
+                          </span>
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   <Badge variant={statusVariant(c.status)}>{c.status}</Badge>
                 </div>
@@ -192,7 +249,8 @@ export default function ComplaintsPage() {
               <CardContent className="pt-0">
                 <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                   {c.date_reported && (
-                    <span>
+                    <span className="flex items-center gap-1">
+                      <Clock size={12} />
                       Reported{' '}
                       {new Date(c.date_reported).toLocaleString('default', {
                         year: 'numeric',
@@ -204,9 +262,21 @@ export default function ComplaintsPage() {
                       })}
                     </span>
                   )}
-                  {c.priority && <span>Priority: {c.priority}</span>}
-                  {c.area && <span>Area: {c.area}</span>}
-                  {c.received_channel && <span>Channel: {c.received_channel}</span>}
+                  {c.priority && (
+                    <Badge variant={priorityVariant(c.priority)} className="gap-1">
+                      <Flag size={12} /> Priority: {c.priority}
+                    </Badge>
+                  )}
+                  {c.area && (
+                    <Badge variant={areaVariant(c.area)} className="gap-1">
+                      <MapPin size={12} /> Area: {c.area}
+                    </Badge>
+                  )}
+                  {c.received_channel && (
+                    <Badge variant={channelVariant(c.received_channel)} className="gap-1">
+                      <MessageSquare size={12} /> Channel: {c.received_channel}
+                    </Badge>
+                  )}
                 </div>
                 {c.description && (
                   <p className="text-sm mt-2 text-muted-foreground line-clamp-2">

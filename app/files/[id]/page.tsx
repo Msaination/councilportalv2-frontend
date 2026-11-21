@@ -93,7 +93,7 @@ export default function FileDetailPage() {
   return (
     <div className="max-w-4xl mx-auto p-6">
       {/* Back button */}
-        <Link href={file.category ? `/categories/${file.category.slug}` : '/'}
+        <Link href={file.category ? `/dashboard/categories/${file.category.slug}` : '/'}
             className="flex items-center text-sm text-muted-foreground hover:text-foreground mb-4">
         <ArrowLeft size={16} className="mr-1" />
         Back
