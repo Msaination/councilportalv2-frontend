@@ -1,5 +1,5 @@
 /**
- * My Complaints — ward councillor's complaints, pulled from the CMS via the
+ * My Complaints — ward councillor's complaints, pulled from the CCMS via the
  * Django gateway (PORTAL_PLAN.md §6.7). Filtering happens server-side on
  * the ward from the portal profile; the browser never touches Supabase.
  *
@@ -12,8 +12,10 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   fetchMyComplaints,
+  fetchComplaintReplies,
   type Complaint,
   type MyComplaints,
+  type ReportReply,
 } from '@/lib/api'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -30,6 +32,7 @@ import {
   MessageSquare,
   Tag,
   Clock,
+  ChevronDown,
 } from 'lucide-react'
 
 /** CMS status lifecycle (§6.7) → badge variant. Live values: Received, New,
@@ -86,6 +89,7 @@ export default function ComplaintsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [selectedComplaint, setSelectedComplaint] = useState<number | null>(null)
 
   const load = async () => {
     setRefreshing(true)
@@ -143,6 +147,53 @@ export default function ComplaintsPage() {
   }
 
   const complaints = data?.results ?? []
+
+  function ComplaintReplies({ complaintId }: { complaintId: number }) {
+    const [replies, setReplies] = useState<ReportReply[]>([])
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
+
+    useEffect(() => {
+      fetchComplaintReplies(complaintId)
+        .then(setReplies)
+        .catch((e) => setError((e as Error).message))
+        .finally(() => setLoading(false))
+    }, [complaintId])
+
+    if (loading) return <p className="text-sm text-muted-foreground p-4">Loading replies...</p>
+    if (error) return <p className="text-sm text-destructive p-4">{error}</p>
+
+    return (
+      <div className="p-4 border-t">
+        {replies.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No replies yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {replies.map((reply) => (
+              <div
+                key={reply.created_at}
+                className={`flex items-start gap-2 ${reply.from_staff ? 'justify-end' : ''}`}
+              >
+                <div
+                  className={`p-2 rounded-lg ${
+                    reply.from_staff
+                      ? 'bg-green-600 text-white'
+                      : 'bg-muted'
+                  }`}
+                >
+                  <p className="text-sm">{reply.body}</p>
+                  <p className="text-xs text-green-900 mt-1">
+                    {new Date(reply.created_at).toLocaleString()}
+                    {' '} - <span className="text-green-800">{reply.author_name}</span>
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="p-6 space-y-4">
@@ -213,78 +264,95 @@ export default function ComplaintsPage() {
       {complaints.length > 0 && (
         <div className="grid gap-3 sm:grid-cols-2">
           {complaints.map((c: Complaint) => (
-            <Card key={c.id}>
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <CardTitle className="text-base">{c.subject}</CardTitle>
-                    <div className="flex flex-wrap items-center gap-2 mt-1">
-                      <Badge variant="outline" className="gap-1 pl-1 pr-2">
-                        <ClipboardList size={12} className="text-muted-foreground" />
-                        <span className="font-mono text-xs font-normal text-foreground">
-                          {c.reference_number}
-                        </span>
-                      </Badge>
-                      {c.department && (
-                        <Badge variant="secondary" className="gap-1 pl-1 pr-2">
-                          <Building size={12} className="text-muted-foreground" />
-                          <span className="text-xs font-normal text-foreground">
-                            {c.department}
+            <div
+              key={c.id}
+              className="rounded-lg border bg-card text-card-foreground shadow-sm"
+            >
+              <button
+                className="w-full text-left"
+                onClick={() => setSelectedComplaint(selectedComplaint === c.id ? null : c.id)}
+              >
+                <CardHeader className="pb-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <CardTitle className="text-base">{c.subject}</CardTitle>
+                      <div className="flex flex-wrap items-center gap-2 mt-1">
+                        <Badge variant="outline" className="gap-1 pl-1 pr-2">
+                          <ClipboardList size={12} className="text-muted-foreground" />
+                          <span className="font-mono text-xs font-normal text-foreground">
+                            {c.reference_number}
                           </span>
                         </Badge>
-                      )}
-                      {c.issue_type && (
-                        <Badge variant="secondary" className="gap-1 pl-1 pr-2">
-                          <Tag size={12} className="text-muted-foreground" />
-                          <span className="text-xs font-normal text-foreground">
-                            {c.issue_type}
-                          </span>
-                        </Badge>
-                      )}
+                        {c.department && (
+                          <Badge variant="secondary" className="gap-1 pl-1 pr-2">
+                            <Building size={12} className="text-muted-foreground" />
+                            <span className="text-xs font-normal text-foreground">
+                              {c.department}
+                            </span>
+                          </Badge>
+                        )}
+                        {c.issue_type && (
+                          <Badge variant="secondary" className="gap-1 pl-1 pr-2">
+                            <Tag size={12} className="text-muted-foreground" />
+                            <span className="text-xs font-normal text-foreground">
+                              {c.issue_type}
+                            </span>
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={statusVariant(c.status)}>{c.status}</Badge>
+                      <ChevronDown
+                        className={`transform transition-transform ${
+                          selectedComplaint === c.id ? 'rotate-180' : ''
+                        }`}
+                        size={16}
+                      />
                     </div>
                   </div>
-                  <Badge variant={statusVariant(c.status)}>{c.status}</Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                  {c.date_reported && (
-                    <span className="flex items-center gap-1">
-                      <Clock size={12} />
-                      Reported{' '}
-                      {new Date(c.date_reported).toLocaleString('default', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: 'numeric',
-                        minute: 'numeric',
-                        hour12: true,
-                      })}
-                    </span>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                    {c.date_reported && (
+                      <span className="flex items-center gap-1">
+                        <Clock size={12} />
+                        Reported{' '}
+                        {new Date(c.date_reported).toLocaleString('default', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                          hour: 'numeric',
+                          minute: 'numeric',
+                          hour12: true,
+                        })}
+                      </span>
+                    )}
+                    {c.priority && (
+                      <Badge variant={priorityVariant(c.priority)} className="gap-1">
+                        <Flag size={12} /> Priority: {c.priority}
+                      </Badge>
+                    )}
+                    {c.area && (
+                      <Badge variant={areaVariant(c.area)} className="gap-1">
+                        <MapPin size={12} /> Area: {c.area}
+                      </Badge>
+                    )}
+                    {c.received_channel && (
+                      <Badge variant={channelVariant(c.received_channel)} className="gap-1">
+                        <MessageSquare size={12} /> Channel: {c.received_channel}
+                      </Badge>
+                    )}
+                  </div>
+                  {c.description && (
+                    <p className="text-sm mt-2 text-muted-foreground line-clamp-2">
+                      {c.description}
+                    </p>
                   )}
-                  {c.priority && (
-                    <Badge variant={priorityVariant(c.priority)} className="gap-1">
-                      <Flag size={12} /> Priority: {c.priority}
-                    </Badge>
-                  )}
-                  {c.area && (
-                    <Badge variant={areaVariant(c.area)} className="gap-1">
-                      <MapPin size={12} /> Area: {c.area}
-                    </Badge>
-                  )}
-                  {c.received_channel && (
-                    <Badge variant={channelVariant(c.received_channel)} className="gap-1">
-                      <MessageSquare size={12} /> Channel: {c.received_channel}
-                    </Badge>
-                  )}
-                </div>
-                {c.description && (
-                  <p className="text-sm mt-2 text-muted-foreground line-clamp-2">
-                    {c.description}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </button>
+              {selectedComplaint === c.id && <ComplaintReplies complaintId={c.id} />}
+            </div>
           ))}
         </div>
       )}

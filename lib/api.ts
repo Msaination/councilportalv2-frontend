@@ -813,3 +813,16 @@ export async function createMeeting(payload: MeetingPayload): Promise<Meeting> {
 export async function deleteMeeting(id: number): Promise<void> {
   await apiFetch(`/api/meetings/${id}/`, { method: 'DELETE' })
 }
+
+// ─── Complaints replies ─────────────────────────────────────
+
+export interface ReportReply {
+  created_at: string
+  body: string
+  from_staff: boolean
+  author_name: string
+}
+
+export async function fetchComplaintReplies(complaintId: number): Promise<ReportReply[]> {
+  return await apiFetch<ReportReply[]>(`/api/complaints/${complaintId}/replies/`)
+}
