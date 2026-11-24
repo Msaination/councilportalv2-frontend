@@ -4,7 +4,7 @@
 
 'use client'
 
-import { Search, Bell, ChevronDown, LogOut, Settings, UserRound } from 'lucide-react'
+import { Search, Bell, ChevronDown, LogOut, Settings, UserRound, Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -21,12 +21,23 @@ import {
 import { useAuth } from '@/components/auth-provider'
 import { useRouter } from 'next/navigation'
 
-export function AppHeader() {
+export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
   const { user } = useAuth()
   const router = useRouter()
 
   return (
     <header className="flex h-14 items-center gap-4 bg-brand px-4 text-brand-foreground lg:px-6">
+      {onMenuClick && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="md:hidden"
+          onClick={onMenuClick}
+          aria-label="Open navigation menu"
+        >
+          <Menu size={20} />
+        </Button>
+      )}
       {/* Search */}
       <div className="flex-1">
         <div className="relative max-w-md">

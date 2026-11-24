@@ -22,12 +22,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
-  CalendarDays, ChevronLeft, ChevronRight, Clock, MapPin, Plus, Trash2,
+  ArrowRight, CalendarDays, ChevronLeft, ChevronRight, Clock, MapPin, Plus,
+  Trash2, Users,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { isoDay, meetingHref } from '@/lib/meetings'
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+const WEEKDAYS_SHORT = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 
 function startOfMonth(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), 1)
@@ -58,8 +60,28 @@ function formatTime(iso: string): string {
   })
 }
 
-function formatDay(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, {
+function timeRange(meeting: Meeting): string {
+  const start = formatTime(meeting.starts_at)
+  return meeting.ends_at ? `${start} – ${formatTime(meeting.ends_at)}` : start
+}
+
+function isSameDay(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear()
+    && a.getMonth() === b.getMonth()
+    && a.getDate() === b.getDate()
+}
+
+/** "Today" / "Tomorrow" / weekday+date, for at-a-glance scanning. */
+function relativeDay(iso: string): string {
+  const start = new Date(iso)
+  start.setHours(0, 0, 0, 0)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const days = Math.round((start.getTime() - today.getTime()) / 86_400_000)
+
+  if (days === 0) return 'Today'
+  if (days === 1) return 'Tomorrow'
+  return start.toLocaleDateString(undefined, {
     weekday: 'short', day: 'numeric', month: 'short',
   })
 }
@@ -79,6 +101,8 @@ export function CalendarApp() {
   const [month, setMonth] = useState(() => startOfMonth(new Date()))
   const [refreshKey, setRefreshKey] = useState(0)
   const [now, setNow] = useState(() => Date.now())
+  // Mobile agenda: which day's meetings are expanded below the compact grid.
+  const [selectedDay, setSelectedDay] = useState<Date>(() => new Date())
 
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -186,36 +210,71 @@ export function CalendarApp() {
 
   const todayKey = dayKey(new Date(now))
 
+  // Mobile agenda shows the tapped day; falls back to the whole month so the
+  // panel is never empty for no reason.
+  const selectedDayMeetings = meetings
+    .filter((m) => isSameDay(new Date(m.starts_at), selectedDay))
+    .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
+
+  const monthMeetings = meetings.filter((m) => {
+    const d = new Date(m.starts_at)
+    return d.getMonth() === month.getMonth()
+      && d.getFullYear() === month.getFullYear()
+  })
+
+  const goToMonth = (offset: number) => {
+    const next = new Date(month.getFullYear(), month.getMonth() + offset, 1)
+    setMonth(next)
+    // Keep the mobile agenda in sync with the month being viewed.
+    setSelectedDay(next)
+  }
+
+  const goToToday = () => {
+    const today = new Date()
+    setMonth(startOfMonth(today))
+    setSelectedDay(today)
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <CalendarDays size={22} /> Calendar
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Upcoming council meetings and sittings.
-          </p>
+      {/* Header */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <CalendarDays size={20} />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold sm:text-2xl">Calendar</h1>
+            <p className="text-xs text-muted-foreground sm:text-sm">
+              {monthMeetings.length} meeting{monthMeetings.length === 1 ? '' : 's'} this month
+            </p>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant={scope === 'mine' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => changeScope('mine')}
-          >
-            My meetings
-          </Button>
-          <Button
-            variant={scope === 'all' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => changeScope('all')}
-          >
-            All meetings
-          </Button>
+          {/* Scope toggle — segmented control reads as one choice, not two buttons */}
+          <div className="flex rounded-lg border border-border p-0.5">
+            {(['mine', 'all'] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => changeScope(option)}
+                className={cn(
+                  'rounded-md px-3 py-1.5 text-xs font-medium transition-colors sm:text-sm',
+                  scope === option
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {option === 'mine' ? 'My meetings' : 'All meetings'}
+              </button>
+            ))}
+          </div>
+
           {isStaff && (
             <Button size="sm" onClick={() => setShowForm((open) => !open)}>
-              <Plus size={16} /> New meeting
+              <Plus size={16} />
+              <span className="hidden sm:inline">New meeting</span>
             </Button>
           )}
         </div>
@@ -310,154 +369,310 @@ export function CalendarApp() {
       )}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <Card>
-          <CardHeader className="flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-base">
-              {month.toLocaleDateString(undefined, {
-                month: 'long', year: 'numeric',
-              })}
-            </CardTitle>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setMonth(new Date(
-                  month.getFullYear(), month.getMonth() - 1, 1,
+        <div className="space-y-4">
+          <Card>
+            <CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-base font-semibold">
+                {month.toLocaleDateString(undefined, {
+                  month: 'long', year: 'numeric',
+                })}
+              </CardTitle>
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="icon" className="h-8 w-8"
+                  aria-label="Previous month" onClick={() => goToMonth(-1)}>
+                  <ChevronLeft size={16} />
+                </Button>
+                <Button variant="outline" size="sm" className="h-8"
+                  onClick={goToToday}>
+                  Today
+                </Button>
+                <Button variant="outline" size="icon" className="h-8 w-8"
+                  aria-label="Next month" onClick={() => goToMonth(1)}>
+                  <ChevronRight size={16} />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {/* Weekday header — single letters on phones, full names from md up */}
+              <div className="mb-1 grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-muted-foreground">
+                {WEEKDAYS.map((day, i) => (
+                  <div key={day}>
+                    <span className="hidden md:inline">{day}</span>
+                    <span className="md:hidden">{WEEKDAYS_SHORT[i]}</span>
+                  </div>
                 ))}
-              >
-                <ChevronLeft size={16} />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setMonth(startOfMonth(new Date()))}
-              >
-                Today
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setMonth(new Date(
-                  month.getFullYear(), month.getMonth() + 1, 1,
-                ))}
-              >
-                <ChevronRight size={16} />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-muted-foreground mb-1">
-              {WEEKDAYS.map((day) => <div key={day}>{day}</div>)}
-            </div>
-            <div className="grid grid-cols-7 gap-1">
-              {monthCells(month).map((day, index) => {
-                if (!day) {
-                  return <div key={`empty-${index}`} className="min-h-24 rounded border bg-muted/20" />
-                }
-                const dayMeetings = meetingsByDay.get(dayKey(day)) ?? []
-                const isToday = dayKey(day) === todayKey
-                return (
-                  <div
-                    key={dayKey(day)}
-                    className={cn(
-                      'min-h-24 rounded border p-1 space-y-1',
-                      isToday && 'border-primary bg-primary/5',
-                    )}
-                  >
-                    <Link
-                      href={`/dashboard/calendar/${isoDay(day)}`}
+              </div>
+
+              <div className="grid grid-cols-7 gap-1">
+                {monthCells(month).map((day, index) => {
+                  if (!day) {
+                    return <div key={`empty-${index}`} className="min-h-11 rounded-lg md:min-h-24" />
+                  }
+                  const dayMeetings = meetingsByDay.get(dayKey(day)) ?? []
+                  const hasMeetings = dayMeetings.length > 0
+                  const hasMine = dayMeetings.some((m) => m.is_mine)
+                  const isToday = dayKey(day) === todayKey
+                  const isSelected = isSameDay(day, selectedDay)
+                  const isPast = new Date(day).setHours(23, 59, 59, 999) < now
+
+                  return (
+                    <div
+                      key={dayKey(day)}
                       className={cn(
-                        'text-xs font-medium hover:underline',
-                        isToday ? 'text-primary' : 'text-muted-foreground',
+                        'relative rounded-lg border p-1 transition-colors',
+                        'min-h-11 md:min-h-24',
+                        // Days without meetings stay visually quiet...
+                        !hasMeetings && !isToday && 'border-border/60',
+                        !hasMeetings && isSelected && !isToday && 'border-primary/50',
+                        // ...so days WITH meetings can stand out clearly.
+                        hasMeetings && !isToday && 'border-primary/40 bg-primary/[0.06]',
+                        hasMeetings && hasMine && 'border-primary/60 bg-primary/10',
+                        isToday && 'border-primary ring-1 ring-primary/30 bg-primary/10',
+                        isPast && 'opacity-60',
                       )}
                     >
-                      {day.getDate()}
-                    </Link>
-                    {dayMeetings.slice(0, 3).map((meeting) => (
-                      <Link
-                        key={meeting.id}
-                        href={`/dashboard/calendar/${isoDay(day)}#meeting-${meeting.id}`}
-                        title={`${meeting.title} — ${formatTime(meeting.starts_at)}`}
-                        className="block truncate rounded bg-primary/10 px-1 py-0.5 text-[10px] leading-tight hover:bg-primary/20"
+                      {/* Mobile: tap the cell to load its agenda below */}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedDay(day)}
+                        className={cn(
+                          'mx-auto flex h-5 w-5 items-center justify-center rounded-full text-xs md:hidden',
+                          isToday && 'bg-primary font-bold text-primary-foreground',
+                          !isToday && hasMeetings && 'font-bold text-primary',
+                          !isToday && !hasMeetings && isSelected && 'bg-primary/15 text-primary',
+                          !isToday && !hasMeetings && !isSelected && 'text-muted-foreground',
+                        )}
+                        aria-label={`Show meetings on ${day.toDateString()}`}
                       >
-                        {formatTime(meeting.starts_at)} {meeting.title}
+                        {day.getDate()}
+                      </button>
+
+                      {/* Mobile: count badge + dots so busy days are obvious */}
+                      {hasMeetings && (
+                        <div className="mt-0.5 flex justify-center md:hidden">
+                          <span
+                            className={cn(
+                              'rounded-full px-1 text-[9px] font-semibold leading-4',
+                              hasMine
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-primary/20 text-primary',
+                            )}
+                          >
+                            {dayMeetings.length}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Desktop: day link + meeting chips */}
+                      <Link
+                        href={`/dashboard/calendar/${isoDay(day)}`}
+                        className={cn(
+                          'hidden text-xs hover:underline md:inline-block',
+                          isToday && 'font-bold text-primary',
+                          !isToday && hasMeetings && 'font-bold text-primary',
+                          !isToday && !hasMeetings && 'font-medium text-muted-foreground',
+                        )}
+                      >
+                        {day.getDate()}
                       </Link>
-                    ))}
-                    {dayMeetings.length > 3 && (
-                      <div className="text-[10px] text-muted-foreground">
-                        +{dayMeetings.length - 3} more
+                      <div className="mt-1 hidden space-y-0.5 md:block">
+                        {dayMeetings.slice(0, 3).map((meeting) => (
+                          <Link
+                            key={meeting.id}
+                            href={`/dashboard/calendar/${isoDay(day)}#meeting-${meeting.id}`}
+                            title={`${meeting.title} — ${formatTime(meeting.starts_at)}`}
+                            className={cn(
+                              'block truncate rounded px-1 py-0.5 text-[10px] font-medium leading-tight transition-colors',
+                              meeting.is_mine
+                                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                                : 'bg-primary/15 text-foreground hover:bg-primary/25',
+                            )}
+                          >
+                            {formatTime(meeting.starts_at)} {meeting.title}
+                          </Link>
+                        ))}
+                        {dayMeetings.length > 3 && (
+                          <div className="pl-1 text-[10px] font-medium text-primary">
+                            +{dayMeetings.length - 3} more
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          </CardContent>
-        </Card>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Legend — explains the highlight without relying on guesswork */}
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-border pt-3 text-[11px] text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-sm border border-primary/40 bg-primary/[0.06]" />
+                  Has meetings
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-sm border border-primary/60 bg-primary/10" />
+                  Includes yours
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-primary" />
+                  Today
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Mobile agenda — the month grid is too small for detail on phones,
+              so the selected day's meetings are listed in full underneath. */}
+          <Card className="md:hidden">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center justify-between text-base">
+                <span>{relativeDay(selectedDay.toISOString())}</span>
+                <span className="text-xs font-normal text-muted-foreground">
+                  {selectedDayMeetings.length} meeting{selectedDayMeetings.length === 1 ? '' : 's'}
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {selectedDayMeetings.length === 0 ? (
+                <div className="flex flex-col items-center gap-1.5 py-6 text-center">
+                  <CalendarDays size={28} className="text-muted-foreground/50" />
+                  <p className="text-sm text-muted-foreground">
+                    Nothing scheduled for this day.
+                  </p>
+                </div>
+              ) : (
+                <ul className="divide-y">
+                  {selectedDayMeetings.map((meeting) => (
+                    <li key={meeting.id} className="py-2.5 first:pt-0 last:pb-0">
+                      <Link
+                        href={`/dashboard/calendar/${isoDay(new Date(meeting.starts_at))}#meeting-${meeting.id}`}
+                        className="block"
+                      >
+                        <div className="flex items-center gap-2">
+                          <p className="truncate text-sm font-medium">
+                            {meeting.title}
+                          </p>
+                          {meeting.is_mine && (
+                            <Badge variant="secondary" className="shrink-0 text-[10px]">
+                              Mine
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Clock size={12} /> {timeRange(meeting)}
+                          </span>
+                          {meeting.location && (
+                            <span className="flex items-center gap-1 truncate">
+                              <MapPin size={12} /> {meeting.location}
+                            </span>
+                          )}
+                        </div>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
         <Card className="lg:sticky lg:top-4 self-start">
-          <CardHeader>
-            <CardTitle className="text-base">Upcoming meetings</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center justify-between text-base">
+              <span>Upcoming</span>
+              {upcoming.length > 0 && (
+                <span className="text-xs font-normal text-muted-foreground">
+                  {upcoming.length}
+                </span>
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? (
-              <p className="text-sm text-muted-foreground">Loading…</p>
+              <div className="space-y-2">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="h-14 animate-pulse rounded-lg bg-muted" />
+                ))}
+              </div>
             ) : upcoming.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No upcoming meetings.
-              </p>
+              <div className="flex flex-col items-center gap-1.5 py-8 text-center">
+                <CalendarDays size={28} className="text-muted-foreground/50" />
+                <p className="text-sm font-medium">No upcoming meetings</p>
+                <p className="text-xs text-muted-foreground">
+                  Your calendar is clear.
+                </p>
+              </div>
             ) : (
               <ul className="divide-y">
                 {upcoming.map((meeting) => (
-                  <li key={meeting.id} className="py-3 space-y-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <Link
-                          href={`/dashboard/calendar/${isoDay(new Date(meeting.starts_at))}#meeting-${meeting.id}`}
-                          className="font-medium text-sm truncate hover:underline block"
-                        >
-                          {meeting.title}
-                        </Link>
-                        <p className="text-xs text-muted-foreground">
-                          {formatDay(meeting.starts_at)} ·{' '}
-                          {formatTime(meeting.starts_at)}
-                          {meeting.ends_at ? `–${formatTime(meeting.ends_at)}` : ''}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        {meeting.is_mine && (
-                          <Badge variant="secondary">Mine</Badge>
-                        )}
-                        {isStaff && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(meeting.id)}
-                            aria-label={`Delete ${meeting.title}`}
-                          >
-                            <Trash2 size={14} />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                      {meeting.location && (
-                        <span className="flex items-center gap-1">
-                          <MapPin size={12} /> {meeting.location}
+                  <li key={meeting.id} className="group py-3 first:pt-0 last:pb-0">
+                    <div className="flex items-start gap-3">
+                      {/* Date chip matches the dashboard treatment */}
+                      <div className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-lg border border-border bg-muted/50 leading-none">
+                        <span className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          {new Date(meeting.starts_at)
+                            .toLocaleDateString(undefined, { month: 'short' })}
                         </span>
-                      )}
-                      <span className="flex items-center gap-1">
-                        <Clock size={12} /> {meeting.team_name}
-                      </span>
+                        <span className="text-sm font-bold">
+                          {new Date(meeting.starts_at).getDate()}
+                        </span>
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start gap-1.5">
+                          <Link
+                            href={`/dashboard/calendar/${isoDay(new Date(meeting.starts_at))}#meeting-${meeting.id}`}
+                            className="min-w-0 flex-1 truncate text-sm font-medium group-hover:underline"
+                          >
+                            {meeting.title}
+                          </Link>
+                          <div className="flex shrink-0 items-center gap-1">
+                            {meeting.is_mine && (
+                              <Badge variant="secondary" className="text-[10px]">
+                                Mine
+                              </Badge>
+                            )}
+                            {isStaff && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-muted-foreground opacity-60 hover:text-destructive hover:opacity-100"
+                                onClick={() => handleDelete(meeting.id)}
+                                aria-label={`Delete ${meeting.title}`}
+                              >
+                                <Trash2 size={13} />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11px] text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Clock size={11} /> {timeRange(meeting)}
+                          </span>
+                          {meeting.location && (
+                            <span className="flex items-center gap-1 truncate">
+                              <MapPin size={11} /> {meeting.location}
+                            </span>
+                          )}
+                          {meeting.team_name && (
+                            <span className="flex items-center gap-1 truncate">
+                              <Users size={11} /> {meeting.team_name}
+                            </span>
+                          )}
+                        </div>
+
+                        {canUseTeams && (meeting.file_title || meeting.category_title) && (
+                          <Link
+                            href={meetingHref(meeting)}
+                            className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+                          >
+                            {meeting.file_title || meeting.category_title}
+                            <ArrowRight size={10} />
+                          </Link>
+                        )}
+                      </div>
                     </div>
-                    {canUseTeams && (meeting.file_title || meeting.category_title) && (
-                      <Link
-                        href={meetingHref(meeting)}
-                        className="text-xs text-primary hover:underline"
-                      >
-                        {meeting.file_title || meeting.category_title}
-                      </Link>
-                    )}
                   </li>
                 ))}
               </ul>

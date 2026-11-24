@@ -10,16 +10,52 @@ import { fetchStatsSummary, type StatsSummary } from '@/lib/api'
 import { fetchRootCategories, checkJwtAuth, fetchMeetings, type Category, type Meeting } from '@/lib/api'
 import { isoDay } from '@/lib/meetings'
 import {
-
-  FileImage,
+  ArrowRight,
+  CalendarDays,
+  Clock,
   Download,
-  Upload,
+  FileImage,
+  MapPin,
   TrendingUp,
-
+  Upload,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 import Link from 'next/link'
+
+/** "Today" / "Tomorrow" / "in 5 days" — helps users scan the list fast. */
+function relativeDay(iso: string): string {
+  const start = new Date(iso)
+  start.setHours(0, 0, 0, 0)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const days = Math.round((start.getTime() - today.getTime()) / 86_400_000)
+
+  if (days === 0) return 'Today'
+  if (days === 1) return 'Tomorrow'
+  if (days < 7) return `In ${days} days`
+  return start.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
+}
+
+function monthLabel(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, { month: 'short' }).toUpperCase()
+}
+
+function dayLabel(iso: string): string {
+  return String(new Date(iso).getDate()).padStart(2, '0')
+}
+
+function timeRange(meeting: Meeting): string {
+  const start = new Date(meeting.starts_at).toLocaleTimeString([], {
+    hour: '2-digit', minute: '2-digit',
+  })
+  if (!meeting.ends_at) return start
+  const end = new Date(meeting.ends_at).toLocaleTimeString([], {
+    hour: '2-digit', minute: '2-digit',
+  })
+  return `${start} – ${end}`
+}
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<StatsSummary | null>(null)
@@ -159,42 +195,89 @@ export default function DashboardPage() {
 
       {/* Upcoming meetings */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+          <CardTitle className="text-lg font-semibold flex items-center gap-2">
+            <CalendarDays size={18} className="text-primary" />
             Upcoming meetings
           </CardTitle>
+          <Link
+            href="/dashboard/calendar"
+            className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+          >
+            View all <ArrowRight size={14} />
+          </Link>
         </CardHeader>
         <CardContent>
           {meetings.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No upcoming meetings.
-            </p>
+            <div className="flex flex-col items-center gap-2 py-8 text-center">
+              <CalendarDays size={32} className="text-muted-foreground/60" />
+              <p className="text-sm font-medium">No upcoming meetings</p>
+              <p className="text-xs text-muted-foreground">
+                Your calendar is clear for now.
+              </p>
+            </div>
           ) : (
-            <ul className="space-y-3">
-              {meetings.map((meeting) => (
-                <li key={meeting.id}>
-                  <Link
-                    href={`/dashboard/calendar/${isoDay(new Date(meeting.starts_at))}#meeting-${meeting.id}`}
-                    className="flex items-center justify-between gap-3 hover:underline"
-                  >
-                    <span className="text-sm font-medium">{meeting.title}</span>
-                    <span className="text-xs text-muted-foreground shrink-0">
-                      {new Date(meeting.starts_at).toLocaleDateString()} ·{' '}
-                      {new Date(meeting.starts_at).toLocaleTimeString([], {
-                        hour: '2-digit', minute: '2-digit',
-                      })}
-                    </span>
-                  </Link>
-                </li>
-              ))}
+            <ul className="divide-y">
+              {meetings.map((meeting, index) => {
+                const isNext = index === 0
+                return (
+                  <li key={meeting.id}>
+                    <Link
+                      href={`/dashboard/calendar/${isoDay(new Date(meeting.starts_at))}#meeting-${meeting.id}`}
+                      className="group flex items-start gap-3 py-3 first:pt-0 last:pb-0 rounded-md transition-colors hover:bg-accent/60"
+                    >
+                      {/* Date chip */}
+                      <div
+                        className={cn(
+                          'flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-lg border text-center leading-none',
+                          isNext
+                            ? 'border-primary/30 bg-primary/10 text-primary'
+                            : 'border-border bg-muted/50 text-muted-foreground',
+                        )}
+                      >
+                        <span className="text-[10px] font-semibold tracking-wide">
+                          {monthLabel(meeting.starts_at)}
+                        </span>
+                        <span className="text-base font-bold">
+                          {dayLabel(meeting.starts_at)}
+                        </span>
+                      </div>
+
+                      {/* Details */}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="truncate text-sm font-medium group-hover:underline">
+                            {meeting.title}
+                          </p>
+                          {isNext && (
+                            <Badge variant="secondary" className="shrink-0 text-[10px]">
+                              Next
+                            </Badge>
+                          )}
+                          {meeting.is_mine && (
+                            <Badge variant="outline" className="shrink-0 text-[10px]">
+                              Mine
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Clock size={12} /> {timeRange(meeting)}
+                          </span>
+                          {meeting.location && (
+                            <span className="flex items-center gap-1 truncate">
+                              <MapPin size={12} /> {meeting.location}
+                            </span>
+                          )}
+                          <span className="text-primary/80">{relativeDay(meeting.starts_at)}</span>
+                        </div>
+                      </div>
+                    </Link>
+                  </li>
+                )
+              })}
             </ul>
           )}
-          <Link
-            href="/dashboard/calendar"
-            className="inline-block mt-3 text-sm text-primary hover:underline"
-          >
-            Open calendar
-          </Link>
         </CardContent>
       </Card>
       
