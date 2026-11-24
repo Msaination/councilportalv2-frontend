@@ -30,8 +30,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col">
+    // suppressHydrationWarning is scoped to this element's own attributes and
+    // exists for third-party attribute injection — browser extensions (e.g.
+    // remote-frame helpers adding `__gcrremoteframetoken`) mutate <html> before
+    // React hydrates. It does NOT suppress real mismatches in the tree below.
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+    >
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <AuthProvider>
           <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <nav className="max-w-4xl mx-auto h-14 flex items-center px-6">
