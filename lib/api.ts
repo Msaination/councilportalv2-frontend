@@ -660,6 +660,8 @@ export interface UserAccess {
   username: string
   email: string
   employee_number: string | null
+  cell_number: string | null
+  ward: number | null
   must_change_password: boolean
   is_superuser: boolean
   capabilities: {
@@ -669,12 +671,18 @@ export interface UserAccess {
   }
 }
 
-export const DEFAULT_NEW_USER_PASSWORD = 'Password#v2cp2026'
+// Bootstrap credential handed to admin-created users; they are forced to change
+// it on first login. Mirrors DEFAULT_NEW_USER_PASSWORD in python/council_portal/
+// settings.py — the backend is authoritative, so keep these two in sync.
+export const DEFAULT_NEW_USER_PASSWORD = '#ECOP26-31'
 
 export interface CreateUserPayload {
   username: string
-  email: string
-  employee_number: string
+  email?: string
+  employee_number?: string
+  cell_number?: string
+  first_name?: string
+  last_name?: string
 }
 
 export async function createUser(data: CreateUserPayload): Promise<UserAccess> {
@@ -693,6 +701,8 @@ export interface UserAccessChanges {
   share_files?: boolean
   edit_employee_numbers?: boolean
   employee_number?: string
+  cell_number?: string
+  ward?: number | null
 }
 
 export async function updateUserAccess(

@@ -42,6 +42,7 @@ export default function AccessPage() {
   const [newUsername, setNewUsername] = useState('')
   const [newEmail, setNewEmail] = useState('')
   const [newEmployeeNumber, setNewEmployeeNumber] = useState('')
+  const [newCellNumber, setNewCellNumber] = useState('')
   const [creating, setCreating] = useState(false)
   const [createdNote, setCreatedNote] = useState<string | null>(null)
   const router = useRouter()
@@ -127,8 +128,15 @@ export default function AccessPage() {
     try {
       const created = await createUser({
         username: newUsername.trim(),
-        email: newEmail.trim(),
-        employee_number: newEmployeeNumber.trim().toUpperCase(),
+        // All three are optional; send only what was actually filled in so the
+        // API does not receive empty strings for unique fields.
+        ...(newEmail.trim() ? { email: newEmail.trim() } : {}),
+        ...(newEmployeeNumber.trim()
+          ? { employee_number: newEmployeeNumber.trim().toUpperCase() }
+          : {}),
+        ...(newCellNumber.trim()
+          ? { cell_number: newCellNumber.trim() }
+          : {}),
       })
       setUsers((prev) =>
         [...prev, created].sort((a, b) => a.username.localeCompare(b.username)),
@@ -139,6 +147,7 @@ export default function AccessPage() {
       setNewUsername('')
       setNewEmail('')
       setNewEmployeeNumber('')
+      setNewCellNumber('')
     } catch (e) {
       setError((e as Error).message)
     } finally {
@@ -217,6 +226,8 @@ export default function AccessPage() {
                     <div className="flex items-center gap-2 text-sm shrink-0">
                       <span className="text-muted-foreground">
                         {row.employee_number || 'No employee number'}
+                        {' · '}
+                        {row.cell_number || 'No cell number'}
                       </span>
                       <Button
                         variant="ghost"
@@ -278,7 +289,7 @@ export default function AccessPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleCreateUser} className="space-y-3">
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <Input
                   value={newUsername}
                   onChange={(e) => setNewUsername(e.target.value)}
@@ -292,16 +303,22 @@ export default function AccessPage() {
                   type="email"
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
-                  placeholder="Email"
-                  required
+                  placeholder="Email (optional)"
                   disabled={creating}
                 />
                 <Input
                   value={newEmployeeNumber}
                   onChange={(e) => setNewEmployeeNumber(e.target.value)}
-                  placeholder="Employee number (S123456)"
+                  placeholder="Employee number (optional, S123456)"
                   maxLength={7}
-                  required
+                  disabled={creating}
+                />
+                <Input
+                  value={newCellNumber}
+                  onChange={(e) => setNewCellNumber(e.target.value)}
+                  placeholder="Cell number (optional, 0821234567)"
+                  maxLength={10}
+                  inputMode="numeric"
                   disabled={creating}
                 />
               </div>
