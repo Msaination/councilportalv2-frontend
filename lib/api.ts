@@ -543,6 +543,38 @@ export async function fetchMyComplaints(): Promise<MyComplaints> {
   return apiFetch<MyComplaints>('/api/complaints/', {}, { unwrapPaginated: false })
 }
 
+export interface CreateComplaintPayload {
+  title: string
+  description: string
+  /** Required: the Supabase column is NOT NULL and has no default. */
+  category: string
+  issue_type?: string
+  assigned_department?: string
+  location_address?: string
+  priority?: 'normal' | 'urgent'
+}
+
+/** Log a complaint against the caller's ward. */
+export async function createComplaint(
+  payload: CreateComplaintPayload,
+): Promise<Complaint> {
+  return apiFetch<Complaint>('/api/complaints/', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+/** Escalate a complaint older than the server's escalation window. */
+export async function escalateComplaint(
+  complaintId: number,
+  reason = '',
+): Promise<Complaint> {
+  return apiFetch<Complaint>(`/api/complaints/${complaintId}/escalate/`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  })
+}
+
 // ─── Shared links ──────────────────────────────────────────
 
 export interface SharedLinkFile {

@@ -11,6 +11,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
+  createComplaint,
+  escalateComplaint,
   fetchMyComplaints,
   fetchComplaintReplies,
   type Complaint,
@@ -20,6 +22,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Inbox,
   MapPin,
@@ -33,22 +36,71 @@ import {
   Tag,
   Clock,
   ChevronDown,
+  Plus,
+  ArrowUpCircle,
+  Loader2,
+  X,
 } from 'lucide-react'
 
-/** CMS status lifecycle (§6.7) → badge variant. Live values: Received, New,
- *  Assigned, In Progress, Escalated, Completed, Resolved. */
+/** A complaint may be escalated only once it has been open this long.
+ *  Mirrors ESCALATION_WINDOW_HOURS in python/complaints/client.py — the
+ *  server is authoritative and re-checks on every escalation. */
+const ESCALATION_WINDOW_HOURS = 72
+const HOURS_TO_MS = 60 * 60 * 1000
+
+/** Statuses that are already past the point of escalating. The CMS stores
+ *  lowercase camel-style values (submitted, inProgress, closed, resolved). */
+const FINAL_STATUSES = new Set(['escalated', 'resolved', 'closed',
+                                'completed', 'cancelled'])
+
+function hoursOpen(complaint: Complaint): number | null {
+  const stamp = complaint.date_reported || complaint.created_at
+  if (!stamp) return null
+  const opened = new Date(stamp).getTime()
+  if (Number.isNaN(opened)) return null
+  return (Date.now() - opened) / HOURS_TO_MS
+}
+
+/** Can this complaint be escalated right now? */
+function isEscalatable(complaint: Complaint): boolean {
+  if (FINAL_STATUSES.has((complaint.status || '').toLowerCase())) return false
+  const age = hoursOpen(complaint)
+  return age !== null && age >= ESCALATION_WINDOW_HOURS
+}
+
+/** Categories that exist on the live complaints table. */
+const COMPLAINT_CATEGORIES = [
+  'Water',
+  'Electricity',
+  'Waste & refuse',
+  'Sanitation',
+  'Roads & stormwater',
+  'Billing & accounts',
+  'Housing',
+  'Emergency & disaster',
+  'Public safety & by-laws',
+  'Community facilities',
+  'Parks & cemeteries',
+  'Other',
+]
+
+/** CMS status lifecycle (§6.7) → badge variant. The CMS stores lowercase
+ *  camel-style values; older Title Case spellings are tolerated too. */
 const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
-  Received: 'outline',
-  New: 'outline',
-  Assigned: 'secondary',
-  'In Progress': 'secondary',
-  Escalated: 'destructive',
-  Resolved: 'default',
-  Completed: 'default',
+  submitted: 'outline',
+  received: 'outline',
+  new: 'outline',
+  assigned: 'secondary',
+  inprogress: 'secondary',
+  escalated: 'destructive',
+  resolved: 'default',
+  completed: 'default',
+  closed: 'default',
 }
 
 function statusVariant(status: string) {
-  return STATUS_VARIANT[status] ?? 'secondary'
+  if (!status) return 'secondary'
+  return STATUS_VARIANT[status.toLowerCase().replace(/[\s_-]/g, '')] ?? 'secondary'
 }
 
 const PRIORITY_VARIANT: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
@@ -83,6 +135,201 @@ function channelVariant(channel: string) {
   return CHANNEL_VARIANT[channel] ?? 'secondary'
 }
 
+const PRIORITIES = [
+  { value: 'normal', label: 'Normal' },
+  { value: 'urgent', label: 'Urgent' },
+] as const
+
+type ComplaintPriority = typeof PRIORITIES[number]['value']
+
+function NewComplaintForm({
+  ward,
+  onCreated,
+  onCancel,
+}: {
+  ward: number
+  onCreated: (referenceNumber: string) => Promise<void> | void
+  onCancel: () => void
+}) {
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [category, setCategory] = useState(COMPLAINT_CATEGORIES[0])
+  const [issueType, setIssueType] = useState('')
+  const [department, setDepartment] = useState('')
+  const [address, setAddress] = useState('')
+  const [priority, setPriority] = useState<ComplaintPriority>('normal')
+  const [saving, setSaving] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault()
+    setSaving(true)
+    setFormError(null)
+    try {
+      const created = await createComplaint({
+        title,
+        description,
+        category,
+        issue_type: issueType || undefined,
+        assigned_department: department || undefined,
+        location_address: address || undefined,
+        priority,
+      })
+      await onCreated(created.reference_number || 'submitted')
+    } catch (e) {
+      setFormError((e as Error).message.replace('API: ', ''))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const fieldClass =
+    'w-full rounded-md border border-input bg-background px-3 py-2 text-sm ' +
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">
+          Log a complaint for ward {ward}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          {formError && (
+            <p className="text-sm text-destructive">{formError}</p>
+          )}
+          <div>
+            <label htmlFor="complaint-title" className="text-sm font-medium block mb-1">
+              Subject
+            </label>
+            <Input
+              id="complaint-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Burst water pipe on Kromdraai Road"
+              maxLength={200}
+              required
+              disabled={saving}
+            />
+          </div>
+          <div>
+            <label htmlFor="complaint-description" className="text-sm font-medium block mb-1">
+              Description
+            </label>
+            <textarea
+              id="complaint-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={4}
+              maxLength={2000}
+              required
+              disabled={saving}
+              className={fieldClass}
+              placeholder="What is wrong, and where?"
+            />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label htmlFor="complaint-category" className="text-sm font-medium block mb-1">
+                Category
+              </label>
+              <select
+                id="complaint-category"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                disabled={saving}
+                className={fieldClass}
+              >
+                {COMPLAINT_CATEGORIES.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="complaint-issue" className="text-sm font-medium block mb-1">
+                Issue type
+              </label>
+              <Input
+                id="complaint-issue"
+                value={issueType}
+                onChange={(e) => setIssueType(e.target.value)}
+                placeholder="e.g. Burst pipe"
+                maxLength={100}
+                disabled={saving}
+              />
+            </div>
+            <div>
+              <label htmlFor="complaint-department" className="text-sm font-medium block mb-1">
+                Department
+              </label>
+              <Input
+                id="complaint-department"
+                value={department}
+                onChange={(e) => setDepartment(e.target.value)}
+                placeholder="Optional"
+                maxLength={100}
+                disabled={saving}
+              />
+            </div>
+            <div>
+              <label htmlFor="complaint-address" className="text-sm font-medium block mb-1">
+                Location
+              </label>
+              <Input
+                id="complaint-address"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Street or stand number"
+                maxLength={255}
+                disabled={saving}
+              />
+            </div>
+            <div>
+              <label htmlFor="complaint-priority" className="text-sm font-medium block mb-1">
+                Priority
+              </label>
+              <select
+                id="complaint-priority"
+                value={priority}
+                onChange={(e) => setPriority(e.target.value as ComplaintPriority)}
+                disabled={saving}
+                className={fieldClass}
+              >
+                {PRIORITIES.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 pt-1">
+            <Button
+              type="submit"
+              size="sm"
+              className="bg-green-600 text-white hover:bg-green-700"
+              disabled={saving || !title.trim() || !description.trim()}
+            >
+              {saving ? <Loader2 size={14} className="mr-1 animate-spin" /> : <Plus size={14} className="mr-1" />}
+              {saving ? 'Submitting…' : 'Submit complaint'}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onCancel}
+              disabled={saving}
+            >
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  )
+}
+
 export default function ComplaintsPage() {
   const router = useRouter()
   const [data, setData] = useState<MyComplaints | null>(null)
@@ -90,6 +337,9 @@ export default function ComplaintsPage() {
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [selectedComplaint, setSelectedComplaint] = useState<number | null>(null)
+  const [showNewForm, setShowNewForm] = useState(false)
+  const [escalatingId, setEscalatingId] = useState<number | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
 
   const load = async () => {
     setRefreshing(true)
@@ -126,6 +376,21 @@ export default function ComplaintsPage() {
     })
     return () => { cancelled = true }
   }, [])
+
+  const handleEscalate = async (complaint: Complaint) => {
+    setEscalatingId(complaint.id)
+    setError(null)
+    setNotice(null)
+    try {
+      await escalateComplaint(complaint.id)
+      setNotice(`${complaint.reference_number} escalated to the department.`)
+      await load()
+    } catch (e) {
+      setError((e as Error).message.replace('API: ', ''))
+    } finally {
+      setEscalatingId(null)
+    }
+  }
 
   if (error === 'auth') {
     router.push('/login')
@@ -221,8 +486,39 @@ export default function ComplaintsPage() {
             <RefreshCw size={14} className="mr-1" />
             {refreshing ? 'Refreshing…' : 'Refresh'}
           </Button>
+          {data?.ward != null && (
+            <Button
+              size="sm"
+              className="bg-green-600 text-white hover:bg-green-700"
+              onClick={() => {
+                setShowNewForm((open) => !open)
+                setNotice(null)
+              }}
+            >
+              {showNewForm ? <X size={14} className="mr-1" /> : <Plus size={14} className="mr-1" />}
+              {showNewForm ? 'Cancel' : 'New Complaint'}
+            </Button>
+          )}
         </div>
       </div>
+
+      {showNewForm && data?.ward != null && (
+        <NewComplaintForm
+          ward={data.ward}
+          onCreated={async (reference) => {
+            setShowNewForm(false)
+            setNotice(`Complaint ${reference} logged for ward ${data.ward}.`)
+            await load()
+          }}
+          onCancel={() => setShowNewForm(false)}
+        />
+      )}
+
+      {notice && (
+        <div className="p-3 bg-green-600/10 text-green-700 text-sm rounded-lg">
+          {notice}
+        </div>
+      )}
 
       {error && error !== 'auth' && (
         <div className="p-4 bg-destructive/10 text-destructive rounded-lg flex items-start gap-2">
@@ -351,6 +647,25 @@ export default function ComplaintsPage() {
                   )}
                 </CardContent>
               </button>
+              {isEscalatable(c) && (
+                <div className="px-4 pb-3 -mt-1">
+                  <Button
+                    size="sm"
+                    className="w-full bg-orange-500 text-white hover:bg-orange-600"
+                    disabled={escalatingId === c.id}
+                    onClick={() => void handleEscalate(c)}
+                  >
+                    {escalatingId === c.id ? (
+                      <Loader2 size={14} className="mr-1 animate-spin" />
+                    ) : (
+                      <ArrowUpCircle size={14} className="mr-1" />
+                    )}
+                    {escalatingId === c.id
+                      ? 'Escalating…'
+                      : `Escalate (open ${Math.floor(hoursOpen(c) ?? 0)}h)`}
+                  </Button>
+                </div>
+              )}
               {selectedComplaint === c.id && <ComplaintReplies complaintId={c.id} />}
             </div>
           ))}
