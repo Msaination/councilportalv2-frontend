@@ -220,31 +220,76 @@ export default function TeamPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="divide-y">
-              {selectedTeam.members.map((member) => (
-                <li
-                  key={member.user_id}
-                  className="py-3 flex items-center justify-between gap-3"
-                >
-                  <div>
-                    <span className="font-medium">{member.username}</span>
-                    <Badge className="ml-2" variant="secondary">
-                      {member.role}
-                    </Badge>
-                  </div>
-                  {canManage && member.user_id !== currentUserId && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={busy}
-                      onClick={() => handleRemoveMember(member.user_id)}
-                    >
-                      <X size={14} /> Remove
-                    </Button>
-                  )}
-                </li>
-              ))}
-            </ul>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
+                    <th className="py-2 pr-3 font-medium">Surname, initials</th>
+                    <th className="py-2 pr-3 font-medium">Party</th>
+                    <th className="py-2 pr-3 font-medium">Capacity</th>
+                    <th className="py-2 pr-3 font-medium">Ward</th>
+                    <th className="py-2 pr-3 font-medium">Cell number</th>
+                    <th className="py-2 pr-3 font-medium">Role</th>
+                    {canManage && (
+                      <th className="py-2 text-right font-medium">Actions</th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedTeam.members.map((member) => (
+                    <tr key={member.user_id} className="border-b last:border-0">
+                      <td className="py-2 pr-3 font-medium">
+                        {member.display_name}
+                      </td>
+                      <td className="py-2 pr-3">
+                        {member.party_abbreviation ? (
+                          <abbr
+                            title={member.party}
+                            className="cursor-help no-underline"
+                          >
+                            {member.party_abbreviation}
+                          </abbr>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="py-2 pr-3">
+                        {member.capacity || (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="py-2 pr-3">
+                        {member.ward ?? (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="py-2 pr-3 tabular-nums">
+                        {member.cell_number || (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="py-2 pr-3">
+                        <Badge variant="secondary">{member.role}</Badge>
+                      </td>
+                      {canManage && (
+                        <td className="py-2 text-right">
+                          {member.user_id !== currentUserId && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={busy}
+                              onClick={() => handleRemoveMember(member.user_id)}
+                            >
+                              <X size={14} /> Remove
+                            </Button>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
             {canManage && (
               <div className="flex gap-2 mt-4">

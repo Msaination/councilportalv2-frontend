@@ -633,6 +633,17 @@ export type TeamRole = 'owner' | 'admin' | 'member'
 export interface TeamMember {
   user_id: number
   username: string
+  last_name: string
+  /** First letters of each given name, e.g. "AJJ". */
+  initials: string
+  /** Surname first, e.g. "Brits, A.J.J." */
+  display_name: string
+  party: string
+  party_abbreviation: string
+  capacity: string
+  ward: number | null
+  ward_code: string
+  cell_number: string
   role: TeamRole
   joined_at: string
 }
