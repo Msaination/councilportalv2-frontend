@@ -109,6 +109,34 @@ export async function logoutJwt(): Promise<void> {
   clearTokens()
 }
 
+/** Features the login screen needs before the user is authenticated. */
+export interface AuthConfig {
+  sso_enabled: boolean
+  sso_login_url: string | null
+}
+
+/**
+ * Fetch public auth capabilities (whether Council SSO is configured).
+ * Unauthenticated by design — the login page has no token yet. Returns a
+ * conservative default if the backend is unreachable, so a network blip can
+ * never hide the password form.
+ */
+export async function fetchAuthConfig(): Promise<AuthConfig> {
+  try {
+    const resp = await fetch(`${getApiBaseUrl()}/api/auth/config/`, {
+      headers: { Accept: 'application/json' },
+    })
+    if (!resp.ok) throw new Error(`API: ${resp.status}`)
+    const data = await resp.json()
+    return {
+      sso_enabled: Boolean(data.sso_enabled),
+      sso_login_url: data.sso_login_url ?? null,
+    }
+  } catch {
+    return { sso_enabled: false, sso_login_url: null }
+  }
+}
+
 export async function checkJwtAuth(): Promise<User | null> {
   const token = getAccessToken()
   if (!token) return null

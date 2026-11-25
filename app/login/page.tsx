@@ -2,15 +2,15 @@
 
 'use client'
 
-import { useState } from 'react'
-import { getApiBaseUrl, loginJwt, checkJwtAuth } from '@/lib/api'
+import { useEffect, useState } from 'react'
+import { getApiBaseUrl, loginJwt, checkJwtAuth, fetchAuthConfig } from '@/lib/api'
 import { useRouter } from 'next/navigation'
 import { LogIn, Lock, User, Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
-const OIDC_LOGIN_URL = `${getApiBaseUrl()}/api/auth/oidc/authenticate/`
+const OIDC_FALLBACK_URL = `${getApiBaseUrl()}/api/auth/oidc/authenticate/`
 
 export default function LoginPage() {
   const [username, setUsername] = useState('')
@@ -18,7 +18,20 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // null = still asking the backend; false = SSO unavailable (hide the button)
+  const [ssoUrl, setSsoUrl] = useState<string | null>(null)
   const router = useRouter()
+
+  useEffect(() => {
+    let cancelled = false
+    fetchAuthConfig().then((config) => {
+      if (cancelled) return
+      if (config.sso_enabled) {
+        setSsoUrl(config.sso_login_url || OIDC_FALLBACK_URL)
+      }
+    })
+    return () => { cancelled = true }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -117,23 +130,29 @@ export default function LoginPage() {
               {submitting ? 'Signing in...' : 'Sign in'}
             </Button>
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">or</span>
-              </div>
-            </div>
+            {/* Only shown when the backend reports OIDC is configured, so
+                users are never offered a door that does not open. */}
+            {ssoUrl && (
+              <>
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">or</span>
+                  </div>
+                </div>
 
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={() => router.push(OIDC_LOGIN_URL)}
-            >
-              Continue with Council SSO
-            </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => router.push(ssoUrl)}
+                >
+                  Continue with Council SSO
+                </Button>
+              </>
+            )}
           </form>
         </CardContent>
       </Card>
