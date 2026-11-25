@@ -289,10 +289,14 @@ export interface ActiveTeam {
   slug: string
 }
 
-/** True when the user may upload/remove content (admin or staff). */
-export function canManageContent(user: User | null): boolean {
-  return Boolean(user && (user.is_staff || user.capabilities.manage_access))
+/** True for the platform superadmin — the only role allowed to create
+ *  users, resources, and committees. */
+export function isAdmin(user: User | null): boolean {
+  return Boolean(user?.capabilities.manage_access)
 }
+
+/** True when the user may upload/remove content. */
+export const canManageContent = isAdmin
 
 export interface UploadLog {
   id: number

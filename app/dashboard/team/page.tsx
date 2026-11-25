@@ -15,6 +15,7 @@ import {
   switchTeam,
   addTeamMember,
   removeTeamMember,
+  isAdmin,
   type Team,
 } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -28,6 +29,7 @@ export default function TeamPage() {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null)
   const [activeSlug, setActiveSlug] = useState<string | null>(null)
   const [currentUserId, setCurrentUserId] = useState<number | null>(null)
+  const [admin, setAdmin] = useState(false)
   const [newTeamName, setNewTeamName] = useState('')
   const [newMember, setNewMember] = useState('')
   const [loading, setLoading] = useState(true)
@@ -42,6 +44,7 @@ export default function TeamPage() {
         if (cancelled) return
         setTeams(teamList)
         setCurrentUserId(user?.id ?? null)
+        setAdmin(isAdmin(user))
         setActiveSlug(user?.active_team?.slug ?? null)
         setSelectedSlug(user?.active_team?.slug ?? teamList[0]?.slug ?? null)
       })
@@ -144,7 +147,9 @@ export default function TeamPage() {
         <CardContent>
           {teams.length === 0 ? (
             <p className="text-sm text-muted-foreground py-4">
-              You are not a member of any committee yet. Create one below.
+              {admin
+                ? 'No committees yet. Create one below.'
+                : 'You are not a member of any committee yet.'}
             </p>
           ) : (
             <ul className="divide-y">
@@ -188,17 +193,22 @@ export default function TeamPage() {
             </ul>
           )}
 
-          <div className="flex gap-2 mt-4">
-            <Input
-              value={newTeamName}
-              onChange={(e) => setNewTeamName(e.target.value)}
-              placeholder="New committee name"
-              disabled={busy}
-            />
-            <Button onClick={handleCreateTeam} disabled={busy || !newTeamName.trim()}>
-              <Plus size={16} /> Create committee
-            </Button>
-          </div>
+          {admin && (
+            <div className="flex gap-2 mt-4">
+              <Input
+                value={newTeamName}
+                onChange={(e) => setNewTeamName(e.target.value)}
+                placeholder="New committee name"
+                disabled={busy}
+              />
+              <Button
+                onClick={handleCreateTeam}
+                disabled={busy || !newTeamName.trim()}
+              >
+                <Plus size={16} /> Create committee
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
