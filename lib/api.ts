@@ -643,6 +643,8 @@ export interface Team {
   slug: string
   created_at: string
   role: TeamRole | null
+  /** Server-computed: owner, committee admin, or platform admin. */
+  can_manage: boolean
   member_count: number
   members: TeamMember[]
 }

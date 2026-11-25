@@ -63,7 +63,7 @@ export default function TeamPage() {
   }, [router])
 
   const selectedTeam = teams.find((team) => team.slug === selectedSlug) ?? null
-  const canManage = selectedTeam?.role === 'owner' || selectedTeam?.role === 'admin'
+  const canManage = selectedTeam?.can_manage ?? false
 
   const reloadTeam = async (slug: string) => {
     const updated = await fetchTeam(slug)
