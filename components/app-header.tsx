@@ -45,7 +45,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
           <Input
             type="search"
             placeholder="Search resources, committees..."
-            className="pl-10 pr-4"
+            className="pl-10 pr-4 text-gray-700 dark:text-gray-300"
           />
         </div>
       </div>

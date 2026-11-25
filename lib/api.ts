@@ -546,11 +546,11 @@ export async function fetchMyComplaints(): Promise<MyComplaints> {
 export interface CreateComplaintPayload {
   title: string
   description: string
-  /** Required: the Supabase column is NOT NULL and has no default. */
+  /** Required: the Supabase columns are NOT NULL with no default. */
   category: string
+  location_address: string
   issue_type?: string
   assigned_department?: string
-  location_address?: string
   priority?: 'normal' | 'urgent'
 }
 

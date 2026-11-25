@@ -50,8 +50,11 @@ const HOURS_TO_MS = 60 * 60 * 1000
 
 /** Statuses that are already past the point of escalating. The CMS stores
  *  lowercase camel-style values (submitted, inProgress, closed, resolved). */
-const FINAL_STATUSES = new Set(['escalated', 'resolved', 'closed',
-                                'completed', 'cancelled'])
+const FINAL_STATUSES = new Set(['resolved', 'closed'])
+
+/** Escalation raises priority to 'urgent' — the CMS has no 'escalated'
+ *  status, and `priority` is the only column that signals urgency. */
+const ESCALATED_PRIORITY = 'urgent'
 
 function hoursOpen(complaint: Complaint): number | null {
   const stamp = complaint.date_reported || complaint.created_at
@@ -64,6 +67,9 @@ function hoursOpen(complaint: Complaint): number | null {
 /** Can this complaint be escalated right now? */
 function isEscalatable(complaint: Complaint): boolean {
   if (FINAL_STATUSES.has((complaint.status || '').toLowerCase())) return false
+  if ((complaint.priority || '').toLowerCase() === ESCALATED_PRIORITY) {
+    return false
+  }
   const age = hoursOpen(complaint)
   return age !== null && age >= ESCALATION_WINDOW_HOURS
 }
@@ -92,7 +98,6 @@ const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'outline' | 'dest
   new: 'outline',
   assigned: 'secondary',
   inprogress: 'secondary',
-  escalated: 'destructive',
   resolved: 'default',
   completed: 'default',
   closed: 'default',
@@ -104,10 +109,8 @@ function statusVariant(status: string) {
 }
 
 const PRIORITY_VARIANT: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
-  Low: 'outline',
-  Medium: 'secondary',
-  High: 'destructive',
-  Urgent: 'destructive',
+  normal: 'outline',
+  urgent: 'destructive',
 }
 
 function priorityVariant(priority: string) {
@@ -170,9 +173,9 @@ function NewComplaintForm({
         title,
         description,
         category,
+        location_address: address,
         issue_type: issueType || undefined,
         assigned_department: department || undefined,
-        location_address: address || undefined,
         priority,
       })
       await onCreated(created.reference_number || 'submitted')
@@ -282,6 +285,7 @@ function NewComplaintForm({
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="Street or stand number"
                 maxLength={255}
+                required
                 disabled={saving}
               />
             </div>
@@ -309,7 +313,7 @@ function NewComplaintForm({
               type="submit"
               size="sm"
               className="bg-green-600 text-white hover:bg-green-700"
-              disabled={saving || !title.trim() || !description.trim()}
+              disabled={saving || !title.trim() || !description.trim() || !address.trim()}
             >
               {saving ? <Loader2 size={14} className="mr-1 animate-spin" /> : <Plus size={14} className="mr-1" />}
               {saving ? 'Submitting…' : 'Submit complaint'}
@@ -383,7 +387,9 @@ export default function ComplaintsPage() {
     setNotice(null)
     try {
       await escalateComplaint(complaint.id)
-      setNotice(`${complaint.reference_number} escalated to the department.`)
+      setNotice(
+        `${complaint.reference_number} escalated — priority raised to urgent.`,
+      )
       await load()
     } catch (e) {
       setError((e as Error).message.replace('API: ', ''))
